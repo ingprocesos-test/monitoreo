@@ -9,18 +9,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-/* ================= CONFIGURACIÓN DE BANDAS =================
-   Para agregar una banda: copia una línea en BANDAS (en el script, abajo)
-   con el nombre, el ID de su Google Sheet y su gid. */
-
 :root{
   --bg:#EDF0F0; --surface:#FFFFFF; --ink:#1F2A30; --muted:#5E6B72; --line:#D3D9DB;
   --accent:#F2B705; --ok:#2E8B57; --bad:#C0392B; --warn:#C98404; --none:#B7BEC2;
   --peso:#0B4FC4; --conteo:#2E9E44; --meta:#D62828;
-  color-scheme:light;
-  box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
@@ -36,100 +30,105 @@
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--bg);color:var(--ink);
-  font:400 16px/1.5 "Barlow",system-ui,"Segoe UI",Arial,sans-serif}
-.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
-h1{font:600 1.9rem/1.1 "Barlow Condensed","Arial Narrow",sans-serif;margin:0;letter-spacing:.01em}
-.sub{color:var(--muted);margin:4px 0 0;font-size:.95rem}
-header{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
-.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-select,input[type=date],button{font:inherit;color:var(--ink);background:var(--surface);
-  border:1px solid var(--line);border-radius:6px;padding:7px 10px}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.4 "Barlow",system-ui,"Segoe UI",Arial,sans-serif}
+.wrap{max-width:1500px;margin:0 auto;padding:8px 12px 16px}
+select,input[type=date],button{font:inherit;font-size:.82rem;color:var(--ink);background:var(--surface);
+  border:1px solid var(--line);border-radius:5px;padding:3px 8px;line-height:1.3}
 button{cursor:pointer}
 button:hover{border-color:var(--muted)}
-:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-.live{display:none;align-items:center;gap:6px;font-weight:600;color:var(--ok)}
-.live.on{display:inline-flex}
-.live::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--ok)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.hidden{display:none!important}
+.sub{color:var(--muted);font-size:.78rem;margin:0}
 
-/* La banda del día: cada minuto es una marca coloreada según cumplimiento */
-.belt{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 16px 10px}
-.belt-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
-.clock{font:700 3rem/1 "Barlow Condensed","Arial Narrow",sans-serif;font-variant-numeric:tabular-nums}
-.step{display:flex;gap:6px;align-items:center}
-.track{position:relative;height:46px;margin:14px 0 4px}
-#strip{position:absolute;inset:8px 0 8px 0;width:100%;height:30px;border-radius:4px;
-  background:repeating-linear-gradient(90deg,transparent 0 calc(100%/24 - 1px),var(--line) calc(100%/24 - 1px) calc(100%/24));}
-#cursor{position:absolute;top:0;bottom:0;width:4px;margin-left:-2px;background:var(--accent);border-radius:2px;pointer-events:none}
+/* ---- Autor ---- */
+.autor{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 20px;
+  background:linear-gradient(100deg,var(--ink) 55%,#2C3A42);color:#F4F6F7;border-radius:8px;
+  padding:7px 16px;border-bottom:3px solid var(--accent)}
+:root[data-theme="dark"] .autor{background:linear-gradient(100deg,#0E1417 55%,#1B262B)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .autor{background:linear-gradient(100deg,#0E1417 55%,#1B262B)}}
+.autor .sistema{font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;opacity:.7}
+.autor h1{font:700 1.35rem/1.1 "Barlow Condensed","Arial Narrow",sans-serif;margin:0}
+.autor .credito{display:flex;align-items:center;gap:12px;text-align:right}
+.autor .credito small{display:block;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.autor .nombre{font:700 clamp(1.25rem,2.4vw,1.75rem)/1.05 "Barlow Condensed","Arial Narrow",sans-serif;letter-spacing:.02em}
+.autor .cargo{font-size:.76rem;opacity:.85}
+.autor .sello{width:38px;height:38px;border-radius:50%;border:2px solid var(--accent);display:grid;place-items:center;
+  font:700 .95rem/1 "Barlow Condensed",sans-serif;color:var(--accent);flex:none}
+@media (max-width:600px){.autor .credito{text-align:left;flex-direction:row-reverse}}
+
+/* ---- Barra de control y tiempo (compacta) ---- */
+.belt{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 10px 3px;margin-top:6px}
+.belt-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.clock{font:700 1.45rem/1 "Barlow Condensed","Arial Narrow",sans-serif;font-variant-numeric:tabular-nums;min-width:3.2em}
+.grupo{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.belt-head .sep{flex:1}
+.live{display:none;align-items:center;gap:5px;font-weight:600;font-size:.8rem;color:var(--ok)}
+.live.on{display:inline-flex}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.track{position:relative;height:16px;margin:5px 0 1px}
+#strip{position:absolute;inset:2px 0;width:100%;height:12px;border-radius:2px}
+#cursor{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;background:var(--accent);border-radius:2px;pointer-events:none}
 #slider{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize}
-#slider:focus-visible + #cursor{box-shadow:0 0 0 3px var(--ink)}
-.hours{position:relative;height:1.3em;color:var(--muted);font-size:.78rem;font-variant-numeric:tabular-nums}
+#slider:focus-visible + #cursor{box-shadow:0 0 0 2px var(--ink)}
+.pie-barra{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px}
+.hours{position:relative;height:1.2em;flex:1 1 300px;color:var(--muted);font-size:.68rem;font-variant-numeric:tabular-nums}
 .hours span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
 .hours span:first-child{transform:none}
 .hours span:last-child{transform:translateX(-100%)}
-.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:.85rem;color:var(--muted)}
-.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;font-size:.68rem;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;vertical-align:-1px}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:var(--line);
-  border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:6px}
-.cell{background:var(--surface);padding:7px 12px}
-.cell .k{color:var(--muted);font-size:.78rem;line-height:1.25}
-.cell .v{font:600 1.35rem/1.15 "Barlow Condensed","Arial Narrow",sans-serif;font-variant-numeric:tabular-nums}
-.cell .v small{font-size:.8rem;color:var(--muted);font-weight:500}
-.cell .fila{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.barra-sup{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px;margin-top:6px;
+  padding:4px 10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;font-size:.8rem}
+.descarga{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.descarga .titulo-desc{font-weight:600;color:var(--muted);font-size:.72rem;letter-spacing:.06em}
+.descarga label{color:var(--muted)}
+.btn-prim{background:var(--ok);color:#fff;border-color:var(--ok);font-weight:600}
+
+/* ---- Resumen y minuto ---- */
+.dos{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,3fr);gap:8px;margin-top:6px}
+@media (max-width:820px){.dos{grid-template-columns:1fr}}
+.seccion{font:600 .7rem/1.2 "Barlow",sans-serif;margin:0 0 2px;color:var(--muted);letter-spacing:.1em}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:6px;overflow:hidden}
 @media (max-width:600px){.grid{grid-template-columns:1fr 1fr}.grid .cell:last-child:nth-child(odd){grid-column:1/-1}}
-.tag{display:inline-block;font-weight:600;font-size:.75rem;padding:0 7px;border-radius:4px;color:#fff}
+.cell{background:var(--surface);padding:3px 9px}
+.cell .k{color:var(--muted);font-size:.68rem;line-height:1.2}
+.cell .v{font:600 1.1rem/1.15 "Barlow Condensed","Arial Narrow",sans-serif;font-variant-numeric:tabular-nums}
+.cell .v small{font-size:.7rem;color:var(--muted);font-weight:500}
+.cell .nota{color:var(--muted);font-size:.62rem;line-height:1.15}
+.cell .fila{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tag{display:inline-block;font-weight:600;font-size:.64rem;padding:0 5px;border-radius:3px;color:#fff}
 .t-SI{background:var(--ok)} .t-NO{background:var(--bad)} .t-POCOS{background:var(--warn)} .t-SIN{background:var(--none);color:var(--ink)}
-.alert{margin-top:12px;padding:10px 14px;border-left:4px solid var(--warn);background:var(--surface);border-radius:6px}
+.alert{margin-top:4px;padding:2px 10px;border-left:3px solid var(--warn);background:var(--surface);border-radius:4px;font-size:.78rem}
 .alert:empty{display:none}
 
-.charts{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
-@media (max-width:820px){.charts{grid-template-columns:1fr}.clock{font-size:2.4rem}}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
-.panel h2{font:600 1.15rem/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:0 0 2px}
-.panel p{margin:0 0 10px;color:var(--muted);font-size:.88rem}
-.chartbox{position:relative;height:300px}
-.estado-cumpl{display:flex;flex-wrap:wrap;gap:6px 22px;font:600 1.05rem/1.3 "Barlow Condensed","Arial Narrow",sans-serif;margin:0 0 8px}
+/* ---- Tablero 2×2: video | curva / cumplimiento día | cumplimiento en vivo ---- */
+.tablero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:8px;margin-top:6px}
+.tablero.sin-vivo > *{grid-column:1/-1}
+.fila3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.fila3.sin-vivo{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:1100px){.fila3,.fila3.sin-vivo{grid-template-columns:1fr}}
+.nota-calidad{font-size:.62rem;color:var(--muted);font-style:italic}
+.tag-color{display:inline-block;font-weight:700;font-size:.66rem;padding:0 6px;border-radius:3px;color:#fff;letter-spacing:.04em}
+.c-GRIS{background:#7D8A91} .c-CAFE{background:#A0703A} .c-MARRON{background:#6B3E1F} .c-OTRO{background:var(--none);color:var(--ink)}
+.estado-cumpl .caco3{color:var(--peso)} .estado-cumpl .mgco3{color:#A0703A}
+@media (max-width:900px){.tablero{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;min-width:0}
+.panel-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 10px}
+.panel h2{font:600 .92rem/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:0;letter-spacing:.02em}
+.panel p{margin:0;color:var(--muted);font-size:.68rem}
+.chartbox{position:relative;height:clamp(140px,21.8vh,265px)}
+.estado-cumpl{display:flex;flex-wrap:wrap;gap:2px 14px;font:600 .82rem/1.2 "Barlow Condensed","Arial Narrow",sans-serif}
 .estado-cumpl .ok{color:var(--ok)} .estado-cumpl .mal{color:var(--meta)} .estado-cumpl .gris{color:var(--muted)}
-.seccion{font:600 .95rem/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:12px 0 0;color:var(--muted);letter-spacing:.05em}
-.dos{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,3fr);gap:12px}
-@media (max-width:820px){.dos{grid-template-columns:1fr}}
-
-/* Autor */
-.autor{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 24px;
-  background:var(--ink);color:var(--bg);border-radius:10px;padding:14px 20px;margin-bottom:16px;
-  border-bottom:4px solid var(--accent)}
-.autor .sistema{font:600 .8rem/1.2 "Barlow",sans-serif;letter-spacing:.14em;text-transform:uppercase;opacity:.75}
-.autor .nombre{font:700 clamp(1.6rem,4.2vw,2.5rem)/1.05 "Barlow Condensed","Arial Narrow",sans-serif;letter-spacing:.01em}
-.autor .cargo{font:500 1rem/1.3 "Barlow",sans-serif;opacity:.85}
-.autor .credito{text-align:right}
-@media (max-width:600px){.autor .credito{text-align:left}}
-.autor .credito small{display:block;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
-footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem;text-align:center}
-
-/* Descarga a Excel */
-.descarga{display:none;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 14px;padding:10px 14px;
-  background:var(--surface);border:1px solid var(--line);border-radius:10px}
-.descarga.on{display:flex}
-.descarga label{font-size:.88rem;color:var(--muted)}
-.btn-prim{background:var(--ok);color:#fff;border-color:var(--ok);font-weight:600}
-.btn-prim:hover{filter:brightness(1.08)}
-.cell .nota{color:var(--muted);font-size:.72rem;line-height:1.2}
-.vivo-panel{margin-top:0}
-.media{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:16px;margin-top:16px}
-.media.sola{grid-template-columns:1fr}
-@media (max-width:820px){.media{grid-template-columns:1fr}}
-.media .chartbox{height:290px}
-.abajo{margin-top:16px}
-.vivo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px;align-items:start}
-@media (max-width:820px){.vivo{grid-template-columns:1fr}}
-.vivo figure{margin:0}
-.vivo img{display:block;width:100%;max-width:100%;aspect-ratio:4/3;object-fit:contain;background:#000;border-radius:6px}
-.vivo figcaption{color:var(--muted);font-size:.85rem;margin-top:6px}
+.vivo figure{margin:4px 0 0}
+.vivo img{display:block;width:100%;height:clamp(145px,25vh,280px);object-fit:contain;background:#000;border-radius:5px}
+.vivo figcaption{color:var(--muted);font-size:.68rem;margin-top:2px}
 .vivo figcaption.viejo{color:var(--meta);font-weight:600}
-.foto{margin-top:12px;color:var(--muted);font-size:.88rem;overflow-wrap:anywhere}
-.empty{margin-top:16px;padding:28px;text-align:center;background:var(--surface);border:1px dashed var(--line);border-radius:10px}
-.hidden{display:none}
+.foto{color:var(--muted);font-size:.66rem;overflow-wrap:anywhere}
+.empty{margin-top:8px;padding:20px;text-align:center;background:var(--surface);border:1px dashed var(--line);border-radius:8px}
+footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
+@media (max-width:600px){ .chartbox{height:230px} .vivo img{height:auto;aspect-ratio:4/3} }
 </style>
 </head>
 <body>
@@ -140,41 +139,45 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--line);color:v
       <h1 id="titulo">Granulometría</h1>
     </div>
     <div class="credito">
-      <small>Diseño y desarrollo</small>
-      <div class="nombre">Ing. René Pascual Fuentes</div>
-      <div class="cargo">Ingeniero Industrial · Ingeniero de Procesos</div>
+      <div>
+        <small>Diseño y desarrollo</small>
+        <div class="nombre">Ing. René Pascual Fuentes</div>
+        <div class="cargo">Ingeniero Industrial · Ingeniero de Procesos</div>
+      </div>
+      <div class="sello" aria-hidden="true">RPF</div>
     </div>
   </section>
 
-  <header>
-    <p class="sub" id="estado">Cargando datos…</p>
-    <div class="controls">
+  <div class="barra-sup">
+    <section class="descarga" id="descarga" aria-label="Descargar datos en Excel">
+      <span class="titulo-desc">⬇ EXCEL</span>
+      <label for="desde">Desde</label><input type="date" id="desde">
+      <label for="hasta">Hasta</label><input type="date" id="hasta">
+      <button class="btn-prim" id="descargar">Descargar Excel</button>
+      <span class="sub" id="estadoDescarga"></span>
+    </section>
+    <div class="grupo" aria-label="Fecha">
       <label class="hidden" for="banda">Banda</label>
       <select id="banda" aria-label="Banda"></select>
       <button id="diaAnt" aria-label="Día anterior">◀</button>
       <input type="date" id="fecha" aria-label="Fecha">
       <button id="diaSig" aria-label="Día siguiente">▶</button>
       <button id="hoy">Hoy</button>
-      <button id="abrirDescarga" aria-expanded="false" aria-controls="descarga">⬇ Excel</button>
-      <span class="live" id="live">En vivo</span>
     </div>
-  </header>
-
-  <section class="descarga" id="descarga" aria-label="Descargar datos en Excel">
-    <label for="desde">Desde</label><input type="date" id="desde">
-    <label for="hasta">Hasta</label><input type="date" id="hasta">
-    <button class="btn-prim" id="descargar">Descargar Excel</button>
-    <span class="sub" id="estadoDescarga" style="margin:0"></span>
-  </section>
+  </div>
 
   <section class="belt" aria-label="Línea de tiempo del día">
     <div class="belt-head">
       <div class="clock" id="reloj">--:--</div>
-      <div class="step">
-        <button id="minAnt" aria-label="Minuto anterior con datos">◀ Minuto</button>
-        <button id="minSig" aria-label="Minuto siguiente con datos">Minuto ▶</button>
-        <button id="ultimo">Último dato</button>
-        <button id="zoomBtn">Ver día completo</button>
+      <div class="grupo">
+        <button id="minAnt" aria-label="Minuto anterior con datos">◀ Min</button>
+        <button id="minSig" aria-label="Minuto siguiente con datos">Min ▶</button>
+        <button id="ultimo">Último</button>
+        <button id="zoomBtn">Día completo</button>
+      </div>
+      <span class="sep"></span>
+      <div class="grupo">
+        <span class="live" id="live">En vivo</span>
       </div>
     </div>
     <div class="track">
@@ -182,12 +185,17 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--line);color:v
       <input type="range" id="slider" min="0" max="1439" step="1" value="0" aria-label="Hora del día">
       <div id="cursor"></div>
     </div>
-    <div class="hours" id="horas"></div>
-    <div class="legend">
-      <span><i style="background:var(--ok)"></i>Cumple</span>
-      <span><i style="background:var(--bad)"></i>No cumple</span>
-      <span><i style="background:var(--warn)"></i>Pocos datos</span>
-      <span><i style="background:var(--none)"></i>Sin material</span>
+    <div class="pie-barra">
+      <div class="hours" id="horas"></div>
+    </div>
+    <div class="pie-barra">
+      <p class="sub" id="estado">Cargando datos…</p>
+      <div class="legend">
+        <span><i style="background:var(--ok)"></i>Cumple</span>
+        <span><i style="background:var(--bad)"></i>No cumple</span>
+        <span><i style="background:var(--warn)"></i>Pocos datos</span>
+        <span><i style="background:var(--none)"></i>Sin material</span>
+      </div>
     </div>
   </section>
 
@@ -206,40 +214,60 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--line);color:v
     </div>
     <div class="alert" id="alerta"></div>
 
-    <div class="media" id="media">
-      <section class="panel vivo-panel hidden" id="panelImagen" aria-label="Imagen en vivo">
-        <h2>EN VIVO</h2>
-        <div class="vivo" style="grid-template-columns:1fr">
-          <figure>
-            <img id="imgVivo" alt="Imagen en vivo de la banda">
-            <figcaption id="imgHora">Esperando imagen…</figcaption>
-          </figure>
+    <div class="tablero" id="tablero">
+      <section class="panel vivo hidden" id="panelImagen" aria-label="Imagen en vivo">
+        <div class="panel-head">
+          <h2>EN VIVO</h2>
+          <button id="verDetecciones" aria-pressed="false">Ver detecciones</button>
         </div>
+        <figure>
+          <img id="imgVivo" alt="Imagen en vivo de la banda">
+          <figcaption id="imgHora">Esperando imagen…</figcaption>
+        </figure>
       </section>
-      <div class="panel">
-        <h2>CURVA GRANULOMÉTRICA</h2>
-        <p>% retenido por malla, en pulgadas · minuto elegido</p>
+
+      <section class="panel" aria-label="Curva granulométrica">
+        <div class="panel-head">
+          <h2>CURVA GRANULOMÉTRICA</h2>
+          <p>% retenido por malla · minuto elegido</p>
+        </div>
         <div class="chartbox"><canvas id="curva"></canvas></div>
         <div class="foto" id="foto"></div>
-      </div>
+      </section>
+
     </div>
 
-    <div class="panel abajo">
-      <h2>CUMPLIMIENTO 2" A 4.5" (80 % MÍNIMO)</h2>
-      <div class="estado-cumpl" id="estadoCumpl"></div>
-      <p>Puntos rojos: abajo de la meta · verdes: cumple · línea amarilla: minuto elegido</p>
-      <div class="chartbox"><canvas id="tendencia"></canvas></div>
+    <div class="fila3" id="fila3">
+      <section class="panel" aria-label="Calidad estimada por color">
+        <div class="panel-head">
+          <h2>CALIDAD ESTIMADA POR COLOR · DÍA</h2>
+          <div class="estado-cumpl" id="estadoCalidad"></div>
+        </div>
+        <p class="nota-calidad">Referencia visual por coloración, no sustituye el análisis de laboratorio</p>
+        <div class="chartbox"><canvas id="calidad"></canvas></div>
+      </section>
+
+      <section class="panel" aria-label="Cumplimiento del día">
+        <div class="panel-head">
+          <h2>CUMPLIMIENTO 2" A 4.5" (80 % MÍN.) · DÍA</h2>
+          <div class="estado-cumpl" id="estadoCumpl"></div>
+        </div>
+        <p>Puntos rojos: abajo de la meta · verdes: cumple · línea amarilla: minuto elegido</p>
+        <div class="chartbox"><canvas id="tendencia"></canvas></div>
+      </section>
+
+      <section class="panel hidden" id="panelVivoGraf" aria-label="Cumplimiento en vivo">
+        <div class="panel-head">
+          <h2>CUMPLIMIENTO EN VIVO · ÚLTIMOS 30 MIN</h2>
+          <div class="estado-cumpl" id="estadoVivo"></div>
+        </div>
+        <p>Un punto cada 3 s · cada punto usa los últimos 30 s</p>
+        <div class="chartbox"><canvas id="grafVivo"></canvas></div>
+      </section>
     </div>
   </div>
 
-  <section class="panel abajo hidden" id="panelVivoGraf" aria-label="Cumplimiento en vivo">
-    <h2>CUMPLIMIENTO EN VIVO</h2>
-    <div class="estado-cumpl" id="estadoVivo"></div>
-    <p>Un punto cada 3 s · últimos 30 minutos · cada punto usa los últimos 30 s</p>
-    <div class="chartbox"><canvas id="grafVivo"></canvas></div>
-  </section>
-
-  <footer>© 2026 Ing. René Pascual Fuentes · Ingeniero Industrial · Ingeniero de Procesos. Todos los derechos reservados.</footer>
+  <footer>© 2026 Ing. René Pascual Fuentes · Ingeniero Industrial · Ingeniero de Procesos · Todos los derechos reservados.</footer>
 </div>
 
 <script>
@@ -249,7 +277,8 @@ const BANDAS = [
   { nombre: "TB06 Roca", id: "1Os3uvBVx6dqHJ-zVbaPrrD-5I3xOZ_FerzbJ9qaeL7U", gid: "0" },
 ];
 const REFRESCO_SEG = 15;     // cada cuánto se actualiza cuando ves el día de hoy
-const IMAGEN_SEG = 5;        // cada cuánto se actualiza la imagen en vivo
+const IMAGEN_SEG = 3;        // cada cuánto se actualiza la imagen en vivo
+const VIVO_SEG = 3;          // cada cuánto se actualiza la gráfica en vivo
 const VIVO_MIN = 30;         // minutos que muestra la gráfica en vivo
 const META = 80;             // % mínimo de cumplimiento
 // =================================================
@@ -284,7 +313,7 @@ function calcularRango() {
   for (let m = rIni; m <= rFin; m += paso) et.push(`<span style="left:${(m - rIni) / (rFin - rIni) * 100}%">${hhmm(m)}</span>`);
   if ((rFin - rIni) % paso) et.push(`<span style="left:100%">${hhmm(rFin)}</span>`);
   $("horas").innerHTML = et.join("");
-  $("zoomBtn").textContent = zoom ? "Ver día completo" : "Acercar a los datos";
+  $("zoomBtn").textContent = zoom ? "Día completo" : "Acercar";
 }
 const pct = m => (m - rIni) / (rFin - rIni) * 100;
 
@@ -345,7 +374,7 @@ async function cargar(mantenerFinal) {
       $("vacio").classList.add("hidden"); $("contenido").classList.remove("hidden");
       if (mantenerFinal && !estabaAlFinal && horaAntes) idx = Math.max(0, filas.findIndex(f => f.hora === horaAntes));
       else idx = filas.length - 1;
-      calcularRango(); dibujarTira(); dibujarTendencia(); seleccionar(idx);
+      calcularRango(); dibujarTira(); dibujarTendencia(); dibujarCalidad(); seleccionar(idx);
     }
     const ahora = new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
     $("estado").textContent = `${filas.length} minutos con registro · actualizado ${ahora}`;
@@ -359,7 +388,7 @@ async function cargar(mantenerFinal) {
     if ($("fecha").value !== hoyISO()) { $("fecha").value = hoyISO(); $("fecha").max = hoyISO(); idx = -1; cargar(false); }
     else cargar(true);
   }, REFRESCO_SEG * 1000);
-  if (!mantenerFinal) controlarVivo();
+  if (!mantenerFinal) { controlarVivo(); $("desde").value = $("hasta").value = fecha; }
 }
 
 function mostrarVacio(fecha) {
@@ -452,11 +481,16 @@ function seleccionar(i) {
   dibujarCurva(f);
   dibujarResumen();
   $("tituloMinuto").textContent = "MINUTO ELEGIDO · " + f.hora;
+  estadoCalidad(f);
   if (graf2) graf2.update("none");
+  if (graf3) graf3.update("none");
 }
 
 // ---------- Gráficas ----------
 Chart.defaults.font.family = '"Barlow", system-ui, sans-serif';
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.labels.boxWidth = 24;
+Chart.defaults.plugins.legend.labels.padding = 6;
 
 // Escribe el % encima de cada punto (peso arriba, conteo abajo), como en la app
 const etiquetasCurva = {
@@ -484,7 +518,7 @@ const etiquetasCurva = {
 
 function dibujarCurva(f) {
   const datos = {
-    labels: MALLAS.map(m => [m[1], m[2]]),
+    labels: MALLAS.map(m => innerWidth < 600 ? m[1] : [m[1], m[2]]),
     datasets: [
       { label: "% PESO (ESTIMADO)", data: MALLAS.map(m => num(f["peso_est_" + m[0]])),
         borderColor: css("--peso"), backgroundColor: css("--peso"), borderWidth: 4, pointRadius: 3, tension: 0 },
@@ -510,6 +544,14 @@ const lineas = {
   afterDatasetsDraw(ch) {
     const { ctx, chartArea: a, scales: { x, y } } = ch;
     ctx.save();
+    if (ch.canvas.id === "calidad") {
+      if (idx >= 0 && filas[idx]) {
+        const xp = x.getPixelForValue(minutoDe(filas[idx].hora));
+        ctx.strokeStyle = css("--accent"); ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(xp, a.top); ctx.lineTo(xp, a.bottom); ctx.stroke();
+      }
+      ctx.restore(); return;
+    }
     const ym = y.getPixelForValue(META);
     ctx.strokeStyle = css("--ink"); ctx.setLineDash([6, 5]); ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(a.left, ym); ctx.lineTo(a.right, ym); ctx.stroke();
@@ -561,6 +603,46 @@ function dibujarTendencia() {
   });
 }
 
+// ---------- Calidad estimada por color ----------
+let graf3 = null;
+const claseColor = c => { c = (c || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return c.startsWith("GRIS") || c === "NORMAL" ? "GRIS" : c.startsWith("CAFE") ? "CAFE" : c.startsWith("MARRON") ? "MARRON" : "OTRO"; };
+const textoColor = c => ({ GRIS: "GRIS", CAFE: "CAFÉ", MARRON: "MARRÓN" })[claseColor(c)] || (c || "—");
+const promedio = campo => { const v = filas.map(f => num(f[campo])).filter(x => x !== null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+
+function estadoCalidad(f) {
+  const ca = num(f.caco3_pct_estimado), mg = num(f.mgco3_pct_estimado), pca = promedio("caco3_pct_estimado"), pmg = promedio("mgco3_pct_estimado");
+  $("estadoCalidad").innerHTML =
+    `<span class="caco3">CaCO₃ ${ca === null ? "—" : ca.toFixed(1) + "%"}</span>` +
+    `<span class="mgco3">MgCO₃ ${mg === null ? "—" : mg.toFixed(1) + "%"}</span>` +
+    (f.color_clasificado ? `<span class="tag-color c-${claseColor(f.color_clasificado)}">${textoColor(f.color_clasificado)}</span>` : "") +
+    (pca !== null ? `<span class="gris">Prom. día: ${pca.toFixed(1)}% / ${pmg === null ? "—" : pmg.toFixed(1) + "%"}</span>` : "");
+}
+
+function dibujarCalidad() {
+  const datos = { datasets: [
+    { label: "CaCO₃ %", data: serie("caco3_pct_estimado"), yAxisID: "y", borderColor: css("--peso"), backgroundColor: css("--peso"), borderWidth: 2.5, pointRadius: 0, spanGaps: false },
+    { label: "MgCO₃ %", data: serie("mgco3_pct_estimado"), yAxisID: "y2", borderColor: "#A0703A", backgroundColor: "#A0703A", borderWidth: 2, pointRadius: 0, spanGaps: false },
+  ] };
+  const ejeX = { type: "linear", min: rIni, max: rFin,
+    ticks: { color: css("--muted"), stepSize: pasoHoras() * 60, maxRotation: 0, callback: v => hhmm(v) }, grid: { display: false } };
+  if (graf3) { graf3.data = datos; graf3.options.scales.x = ejeX; graf3.update("none"); return; }
+  graf3 = new Chart($("calidad"), {
+    type: "line", data: datos, plugins: [lineas],
+    options: { responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: "nearest", axis: "x", intersect: false },
+      onClick: (e, els) => { if (els.length) seleccionar(cercano(graf3.data.datasets[els[0].datasetIndex].data[els[0].index].x)); },
+      scales: {
+        y: { position: "left", min: 86, max: 95, ticks: { color: css("--peso"), callback: v => v + " %" }, grid: { color: css("--line") },
+             title: { display: true, text: "CaCO₃", color: css("--peso") } },
+        y2: { position: "right", min: 0, max: 8, ticks: { color: "#A0703A", callback: v => v + " %" }, grid: { display: false },
+              title: { display: true, text: "MgCO₃", color: "#A0703A" } },
+        x: ejeX },
+      plugins: { legend: { labels: { color: css("--ink") } },
+                 tooltip: { callbacks: { title: it => it.length ? hhmm(it[0].parsed.x) : "", label: c => `${c.dataset.label.replace(" %", "")}: ${c.parsed.y ?? "—"} %` } } } }
+  });
+}
+
 // ---------- En vivo (imagen cada 5 s y datos cada 3 s) ----------
 let grafVivo = null, timerImg = null, timerVivo = null;
 // Convierte "AAAA-MM-DD HH:MM:SS" a milisegundos (así funciona aunque cruce la medianoche)
@@ -568,17 +650,29 @@ const msDe = t => { const m = /(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2}):(\d{
   return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() : null; };
 const hm = ms => { const d = new Date(ms); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
 const hms = ms => hm(ms) + ":" + String(new Date(ms).getSeconds()).padStart(2, "0");
-function acomodarMedia() { $("media").classList.toggle("sola", $("panelImagen").classList.contains("hidden")); }
+function acomodarMedia() {
+  $("tablero").classList.toggle("sin-vivo", $("panelImagen").classList.contains("hidden"));
+  $("fila3").classList.toggle("sin-vivo", $("panelVivoGraf").classList.contains("hidden"));
+}
 const buscarCol = (fila, ...partes) => Object.keys(fila).find(k => partes.every(p => k.toLowerCase().includes(p)));
 
+let verDet = false, ultimaImagen = null;
+function mostrarImagen() {
+  if (!ultimaImagen) return;
+  const { limpia, det } = ultimaImagen;
+  const b64 = verDet ? (det || limpia) : (limpia || det);
+  if (b64) $("imgVivo").src = "data:image/jpeg;base64," + b64;
+  $("verDetecciones").classList.toggle("hidden", !det || !limpia);
+}
 async function cargarImagen() {
   try {
-    const r = await consultar(BANDAS[$("banda").value], { sheet: "imagen" }, "select A, B", false);
+    const r = await consultar(BANDAS[$("banda").value], { sheet: "imagen" }, "select A, B, C", false);
     const fila = r[0]; if (!fila) return;
-    const [cuando, b64] = Object.values(fila);
-    if (!b64 || b64.length < 100) return;
+    const [cuando, limpia, det] = Object.values(fila);
+    if ((!limpia || limpia.length < 100) && (!det || det.length < 100)) return;
+    ultimaImagen = { limpia: limpia && limpia.length > 100 ? limpia : null, det: det && det.length > 100 ? det : null };
     $("panelImagen").classList.remove("hidden"); acomodarMedia();
-    $("imgVivo").src = "data:image/jpeg;base64," + b64;
+    mostrarImagen();
     const t = new Date(String(cuando).replace(" ", "T"));
     const atraso = (Date.now() - t.getTime()) / 1000;
     const cap = $("imgHora");
@@ -594,17 +688,21 @@ async function cargarVivo() {
     const ej = r[r.length - 1];
     const cT = ej.fecha_hora !== undefined ? "fecha_hora" : (buscarCol(ej, "fecha") || buscarCol(ej, "hora"));
     const cP = buscarCol(ej, "cumpl", "peso"), cC = buscarCol(ej, "cumpl", "conteo");
+    const cCa = buscarCol(ej, "caco3"), cMg = buscarCol(ej, "mgco3");
     if (!cT || !cP) return;
     const pts = r.map(f => ({ s: msDe(f[cT]), p: num(f[cP]), c: cC ? num(f[cC]) : null })).filter(x => x.s !== null).sort((a, b) => a.s - b.s);
     if (!pts.length) return;
     const fin = pts[pts.length - 1].s, ini = fin - VIVO_MIN * 60000;
     const vis = pts.filter(x => x.s >= ini);
-    $("panelVivoGraf").classList.remove("hidden");
+    $("panelVivoGraf").classList.remove("hidden"); acomodarMedia();
 
     const ult = vis[vis.length - 1];
     const linea = (n, v) => v === null ? `<span class="gris">${n}: —</span>` :
       `<span class="${v >= META ? "ok" : "mal"}">${n}: ${Math.round(v)}% ${v >= META ? "CUMPLE" : "NO CUMPLE"}</span>`;
-    $("estadoVivo").innerHTML = linea("Peso est.", ult.p) + linea("Conteo", ult.c) + `<span class="gris">${hms(ult.s)}</span>`;
+    const ultFila = r[r.length - 1], ca = cCa ? num(ultFila[cCa]) : null, mg = cMg ? num(ultFila[cMg]) : null;
+    $("estadoVivo").innerHTML = linea("Peso est.", ult.p) + linea("Conteo", ult.c) +
+      (ca !== null ? `<span class="caco3">CaCO₃ ${ca.toFixed(1)}%</span><span class="mgco3">MgCO₃ ${mg === null ? "—" : mg.toFixed(1) + "%"}</span>` : "") +
+      `<span class="gris">${hms(ult.s)}</span>`;
 
     const conHuecos = campo => { const out = []; let prev = null;
       vis.forEach(x => { if (prev !== null && x.s - prev > 15000) out.push({ x: prev + 1, y: null }); out.push({ x: x.s, y: x[campo] }); prev = x.s; });
@@ -631,7 +729,7 @@ function controlarVivo() {
   if (!esHoy) { $("panelImagen").classList.add("hidden"); $("panelVivoGraf").classList.add("hidden"); acomodarMedia(); return; }
   cargarImagen(); cargarVivo();
   timerImg = setInterval(cargarImagen, IMAGEN_SEG * 1000);
-  timerVivo = setInterval(cargarVivo, REFRESCO_SEG * 1000);
+  timerVivo = setInterval(cargarVivo, VIVO_SEG * 1000);
 }
 
 // ---------- Descarga a Excel ----------
@@ -665,6 +763,10 @@ async function descargarExcel() {
       MALLAS.forEach(m => { o[`% conteo ${m[1]} (${m[2]})`] = n(f["conteo_" + m[0]]); });
       o["Segundos de paro"] = n(f.seg_paro);
       o["Segundos en vacío"] = n(f.seg_vacio);
+      o["CaCO3 estimado por color (%)"] = n(f.caco3_pct_estimado);
+      o["MgCO3 estimado por color (%)"] = n(f.mgco3_pct_estimado);
+      o["Índice café (0-1)"] = n(f.indice_cafe);
+      o["Color clasificado"] = f.color_clasificado;
       o["Alerta"] = f.alerta;
       return o;
     });
@@ -725,13 +827,16 @@ $("hoy").onclick = () => { $("fecha").value = hoyISO(); idx = -1; cargar(false);
 $("minAnt").onclick = () => seleccionar(idx - 1);
 $("minSig").onclick = () => seleccionar(idx + 1);
 $("ultimo").onclick = () => seleccionar(filas.length - 1);
-$("abrirDescarga").onclick = () => {
-  const p = $("descarga"), abierto = p.classList.toggle("on");
-  $("abrirDescarga").setAttribute("aria-expanded", abierto);
-  if (abierto) { $("desde").value = $("hasta").value = $("fecha").value; $("desde").max = $("hasta").max = hoyISO(); }
-};
+$("desde").value = $("hasta").value = $("fecha").value;
+$("desde").max = $("hasta").max = hoyISO();
 $("descargar").onclick = descargarExcel;
-$("zoomBtn").onclick = () => { zoom = !zoom; calcularRango(); if (filas.length) { dibujarTira(); dibujarTendencia(); seleccionar(idx); } };
+$("verDetecciones").onclick = () => {
+  verDet = !verDet;
+  $("verDetecciones").textContent = verDet ? "Ver imagen limpia" : "Ver detecciones";
+  $("verDetecciones").setAttribute("aria-pressed", verDet);
+  mostrarImagen();
+};
+$("zoomBtn").onclick = () => { zoom = !zoom; calcularRango(); if (filas.length) { dibujarTira(); dibujarTendencia(); dibujarCalidad(); seleccionar(idx); } };
 $("slider").addEventListener("input", e => { if (filas.length) seleccionar(cercano(+e.target.value)); });
 $("slider").addEventListener("keydown", e => {
   if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); seleccionar(idx - 1); }
@@ -739,9 +844,9 @@ $("slider").addEventListener("keydown", e => {
 });
 window.addEventListener("resize", () => { if (filas.length) dibujarTira(); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-  if (graf1) { graf1.destroy(); graf1 = null; } if (graf2) { graf2.destroy(); graf2 = null; }
+  if (graf1) { graf1.destroy(); graf1 = null; } if (graf2) { graf2.destroy(); graf2 = null; } if (graf3) { graf3.destroy(); graf3 = null; }
   if (grafVivo) { grafVivo.destroy(); grafVivo = null; cargarVivo(); }
-  if (filas.length) { dibujarTira(); dibujarTendencia(); seleccionar(idx); }
+  if (filas.length) { dibujarTira(); dibujarTendencia(); dibujarCalidad(); seleccionar(idx); }
 });
 
 cargar(false);
