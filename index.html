@@ -109,6 +109,15 @@ button:hover{border-color:var(--muted)}
 .fila3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
 .fila3.sin-vivo{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media (max-width:1100px){.fila3,.fila3.sin-vivo{grid-template-columns:1fr}}
+button.ctd{font:700 .62rem/1 "Barlow",sans-serif;padding:2px 6px;border-radius:3px;background:var(--ink);color:var(--surface);border-color:var(--ink);letter-spacing:.06em}
+dialog#dlgCTD{border:1px solid var(--line);border-radius:10px;padding:16px 18px;max-width:380px;width:calc(100% - 32px);background:var(--surface);color:var(--ink)}
+dialog#dlgCTD::backdrop{background:rgba(0,0,0,.45)}
+#formCTD{display:grid;gap:6px}
+#formCTD h2{font:600 1.05rem/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:0}
+#formCTD label{font-size:.78rem;color:var(--muted);margin-top:4px}
+#formCTD input{font:inherit;font-size:.95rem;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--ink)}
+.ctd-botones{display:flex;gap:6px;margin-top:8px;align-items:center}
+.ctd-botones .sep{flex:1}
 .nota-calidad{font-size:.62rem;color:var(--muted);font-style:italic}
 .tag-color{display:inline-block;font-weight:700;font-size:.66rem;padding:0 6px;border-radius:3px;color:#fff;letter-spacing:.04em}
 .c-GRIS{background:#7D8A91} .c-CAFE{background:#A0703A} .c-MARRON{background:#6B3E1F} .c-OTRO{background:var(--none);color:var(--ink)}
@@ -163,6 +172,7 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
       <input type="date" id="fecha" aria-label="Fecha">
       <button id="diaSig" aria-label="Día siguiente">▶</button>
       <button id="hoy">Hoy</button>
+      <span class="sub">Día de producción 07:00 a 07:00</span>
     </div>
   </div>
 
@@ -267,6 +277,24 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
     </div>
   </div>
 
+  <dialog id="dlgCTD" aria-labelledby="ctdTitulo">
+    <form method="dialog" id="formCTD">
+      <h2 id="ctdTitulo">CTD · Calibrar toneladas del día</h2>
+      <p class="sub" id="ctdInfo"></p>
+      <label for="ctdClave">Contraseña</label>
+      <input type="password" id="ctdClave" autocomplete="off">
+      <label for="ctdReal">Toneladas reales acumuladas a esa hora</label>
+      <input type="number" id="ctdReal" step="0.1" min="0" inputmode="decimal">
+      <p class="sub" id="ctdMsg" role="alert"></p>
+      <div class="ctd-botones">
+        <button type="button" id="ctdBorrar">Quitar ajustes del día</button>
+        <span class="sep"></span>
+        <button type="button" id="ctdCancelar">Cancelar</button>
+        <button type="submit" class="btn-prim" id="ctdGuardar">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
   <footer>© 2026 Ing. René Pascual Fuentes · Ingeniero Industrial · Ingeniero de Procesos · Todos los derechos reservados.</footer>
 </div>
 
@@ -276,6 +304,8 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
 const BANDAS = [
   { nombre: "TB06 Roca", id: "1Os3uvBVx6dqHJ-zVbaPrrD-5I3xOZ_FerzbJ9qaeL7U", gid: "0" },
 ];
+const INICIO_JORNADA = 7 * 60;   // el día de producción va de 07:00 a 06:59 del día siguiente
+const CLAVE_CTD = "123";          // contraseña para calibrar toneladas del día (CTD)
 const REFRESCO_SEG = 15;     // cada cuánto se actualiza cuando ves el día de hoy
 const IMAGEN_SEG = 3;        // cada cuánto se actualiza la imagen en vivo
 const VIVO_SEG = 3;          // cada cuánto se actualiza la gráfica en vivo
@@ -292,16 +322,17 @@ const MALLAS = [
 const $ = id => document.getElementById(id);
 let filas = [], idx = -1, timer = null, graf1 = null, graf2 = null;
 let zoom = true, rIni = 0, rFin = 1440;   // rango visible en minutos del día
-const hhmm = m => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+// Los minutos de la gráfica se cuentan desde el inicio de jornada (0 = 07:00, 1439 = 06:59 del día siguiente)
+const hhmm = m => { const c = ((m + INICIO_JORNADA) % 1440 + 1440) % 1440; return String(Math.floor(c / 60)).padStart(2, "0") + ":" + String(c % 60).padStart(2, "0"); };
 const pasoHoras = () => { const h = (rFin - rIni) / 60; return h <= 4 ? 1 : h <= 10 ? 2 : h <= 16 ? 3 : 6; };
 
 // Acerca la vista a las horas donde hay datos (o el día completo)
 function calcularRango() {
   if (!zoom || !filas.length) { rIni = 0; rFin = 1440; }
   else {
-    const mins = filas.map(f => minutoDe(f.hora));
+    const mins = filas.map(f => f._m);
     let lo = Math.min(...mins), hi = Math.max(...mins);
-    if ($("fecha").value === hoyISO()) { const n = new Date(); hi = Math.max(hi, n.getHours() * 60 + n.getMinutes()); }
+    if ($("fecha").value === jornadaHoy()) hi = Math.max(hi, minutoJornadaAhora());
     rIni = Math.max(0, Math.floor((lo - 15) / 60) * 60);
     rFin = Math.min(1440, Math.ceil((hi + 15) / 60) * 60);
     if (rFin - rIni < 120) { rFin = Math.min(1440, rIni + 120); rIni = Math.max(0, rFin - 120); }
@@ -319,7 +350,15 @@ const pct = m => (m - rIni) / (rFin - rIni) * 100;
 
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const num = v => { if (v === null || v === undefined || v === "") return null; const n = parseFloat(String(v).replace(",", ".")); return isNaN(n) ? null : n; };
-const hoyISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+const isoDe = d => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10); };
+const hoyISO = () => isoDe(new Date());
+const sumarDias = (iso, n) => { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return isoDe(d); };
+// Día de producción actual: antes de las 07:00 todavía cuenta como el día anterior
+const jornadaHoy = () => isoDe(new Date(Date.now() - INICIO_JORNADA * 60000));
+const minutoJornadaAhora = () => { const n = new Date(); return ((n.getHours() * 60 + n.getMinutes() - INICIO_JORNADA) % 1440 + 1440) % 1440; };
+// A qué día de producción pertenece una fila y en qué minuto de esa jornada cae
+const jornadaDe = (fecha, hora) => minutoDe(hora) < INICIO_JORNADA ? sumarDias(fecha, -1) : fecha;
+const minJornada = hora => ((minutoDe(hora) - INICIO_JORNADA) % 1440 + 1440) % 1440;
 const minutoDe = h => { const m = /^(\d{1,2}):(\d{2})/.exec(h || ""); return m ? (+m[1]) * 60 + (+m[2]) : null; };
 const estadoClase = s => { s = (s || "").trim().toUpperCase(); return s.startsWith("SIN") ? "SIN" : s === "SI" || s === "SÍ" ? "SI" : s.startsWith("NO") ? "NO" : s.startsWith("POCOS") ? "POCOS" : "SIN"; };
 const colorEstado = s => ({ SI: css("--ok"), NO: css("--bad"), POCOS: css("--warn"), SIN: css("--none") })[estadoClase(s)];
@@ -354,9 +393,13 @@ async function consultar(banda, pestana, consulta, conEncabezado = true) {
   });
 }
 
+// Trae el día de producción: de las 07:00 del día elegido a las 06:59 del día siguiente
 async function leerDia(banda, fecha) {
-  const filas = await consultar(banda, { gid: banda.gid }, `select * where A = '${fecha}'`);
-  return filas.filter(o => o.hora).sort((a, b) => minutoDe(a.hora) - minutoDe(b.hora));
+  const sig = sumarDias(fecha, 1);
+  const r = await consultar(banda, { gid: banda.gid }, `select * where A = '${fecha}' or A = '${sig}'`);
+  return r.filter(o => o.hora && o.fecha && jornadaDe(o.fecha, o.hora) === fecha)
+    .map(o => { o._m = minJornada(o.hora); return o; })
+    .sort((a, b) => a._m - b._m);
 }
 
 // ---------- Carga y refresco ----------
@@ -381,11 +424,11 @@ async function cargar(mantenerFinal) {
   } catch (e) {
     $("estado").textContent = "No se pudieron leer los datos: " + e.message + ". Revisa tu conexión y que la hoja esté compartida con cualquier persona con el vínculo.";
   }
-  const esHoy = fecha === hoyISO();
+  const esHoy = fecha === jornadaHoy();
   $("live").classList.toggle("on", esHoy);
   clearInterval(timer);
   if (esHoy) timer = setInterval(() => {
-    if ($("fecha").value !== hoyISO()) { $("fecha").value = hoyISO(); $("fecha").max = hoyISO(); idx = -1; cargar(false); }
+    if ($("fecha").value !== jornadaHoy()) { $("fecha").value = jornadaHoy(); $("fecha").max = jornadaHoy(); idx = -1; cargar(false); }
     else cargar(true);
   }, REFRESCO_SEG * 1000);
   if (!mantenerFinal) { controlarVivo(); $("desde").value = $("hasta").value = fecha; }
@@ -407,13 +450,31 @@ const duracion = min => {
   if (min < 60) return `${min}<small> min</small>`;
   return `${Math.floor(min / 60)}<small> h</small> ${String(min % 60).padStart(2, "0")}<small> min</small>`;
 };
-const toneladas = hasta => filas.slice(0, hasta + 1).reduce((t, f) => t + (num(f.toneladas_hora) || 0) / 60, 0);
+// ---- Toneladas acumuladas de la jornada, con ajustes CTD ----
+// Un ajuste dice: "a tal minuto de la jornada, lo real acumulado era X t". A partir de ahí
+// se sigue sumando lo que calcula el programa. Se guardan en este navegador.
+const claveCTD = fecha => `ctd:${BANDAS[$("banda").value].id}:${fecha}`;
+const leerCTD = fecha => { try { return JSON.parse(localStorage.getItem(claveCTD(fecha)) || "[]"); } catch (e) { return []; } };
+const guardarCTD = (fecha, lista) => { try { localStorage.setItem(claveCTD(fecha), JSON.stringify(lista)); } catch (e) {} };
+
+function acumulados(lista, ajustes) {
+  const crudo = [], ajust = [];
+  let t = 0;
+  lista.forEach(f => { t += (num(f.toneladas_hora) || 0) / 60; crudo.push(t); });
+  const aj = [...ajustes].sort((a, b) => a.m - b.m);
+  lista.forEach((f, i) => {
+    const a = aj.filter(x => x.m <= f._m).pop();
+    if (!a) { ajust.push(crudo[i]); return; }
+    const j = lista.findLastIndex(g => g._m <= a.m);
+    ajust.push(a.real + (crudo[i] - (j >= 0 ? crudo[j] : 0)));
+  });
+  return { crudo, ajust, ultimo: aj[aj.length - 1] || null };
+}
 
 function dibujarResumen() {
   if (!filas.length) { $("resumen").innerHTML = ""; return; }
-  const esHoy = $("fecha").value === hoyISO();
-  const n = new Date();
-  const transcurridos = esHoy ? n.getHours() * 60 + n.getMinutes() + 1 : 1440;
+  const esHoy = $("fecha").value === jornadaHoy();
+  const transcurridos = esHoy ? minutoJornadaAhora() + 1 : 1440;
   const conMarcas = filas.some(f => num(f.seg_paro) !== null || num(f.seg_vacio) !== null);
   let paro = null, vacio;
   if (conMarcas) {
@@ -424,12 +485,20 @@ function dibujarResumen() {
   }
   const conMaterial = Math.max(0, filas.length - vacio - (paro || 0));
   const sinRegistro = Math.max(0, transcurridos - filas.length);
-  const total = toneladas(filas.length - 1);
-  const hasta = toneladas(idx);
+  const ac = acumulados(filas, leerCTD($("fecha").value));
+  const total = ac.ajust[filas.length - 1], hasta = ac.ajust[idx] ?? 0;
   const f = filas[idx];
+  let notaCTD = "";
+  if (ac.ultimo) {
+    const j = filas.findLastIndex(g => g._m <= ac.ultimo.m);
+    const calc = j >= 0 ? ac.crudo[j] : 0;
+    const fac = calc > 0 ? ac.ultimo.real / calc : null;
+    notaCTD = `<div class="nota">CTD ${hhmm(ac.ultimo.m)} · calc. ${ac.crudo[filas.length - 1].toFixed(1)} t${fac ? ` · ×${fac.toFixed(3)}` : ""}</div>`;
+  }
   $("resumen").innerHTML = `
-    <div class="cell"><div class="k">Toneladas del día</div><div class="v">${total.toFixed(1)}<small> t</small></div>
-      <div class="nota">hasta las ${f?.hora ?? "--:--"}: ${hasta.toFixed(1)} t</div></div>
+    <div class="cell"><div class="k">Toneladas del día</div>
+      <div class="fila"><div class="v">${total.toFixed(1)}<small> t</small></div>${ac.ultimo ? '<span class="tag t-POCOS" title="Ajustado con CTD">AJ</span>' : ""}<button class="ctd" id="btnCTD" title="Calibrar toneladas del día">CTD</button></div>
+      <div class="nota">07:00–07:00 · a las ${f?.hora ?? "--:--"}: ${hasta.toFixed(1)} t</div>${notaCTD}</div>
     <div class="cell"><div class="k">Con material</div><div class="v">${duracion(conMaterial)}</div></div>
     <div class="cell"><div class="k">Tiempo en vacío</div><div class="v">${duracion(vacio)}</div>
       <div class="nota">banda moviéndose sin roca</div></div>
@@ -446,7 +515,7 @@ function dibujarTira() {
   const g = c.getContext("2d"); g.clearRect(0, 0, c.width, c.height);
   const w = c.width / (rFin - rIni);
   filas.forEach(f => {
-    const m = minutoDe(f.hora); if (m === null || m < rIni || m >= rFin) return;
+    const m = f._m; if (m === null || m < rIni || m >= rFin) return;
     g.fillStyle = colorEstado(f.cumple);
     g.fillRect((m - rIni) * w, 0, Math.max(w - (w > 4 ? 1 : 0), 1.5 * dpr), c.height);
   });
@@ -456,7 +525,7 @@ function dibujarTira() {
 function seleccionar(i) {
   if (!filas.length) return;
   idx = Math.max(0, Math.min(filas.length - 1, i));
-  const f = filas[idx], m = minutoDe(f.hora);
+  const f = filas[idx], m = f._m;
   $("slider").value = m;
   $("cursor").style.left = pct(m) + "%";
   $("reloj").textContent = f.hora;
@@ -546,7 +615,7 @@ const lineas = {
     ctx.save();
     if (ch.canvas.id === "calidad") {
       if (idx >= 0 && filas[idx]) {
-        const xp = x.getPixelForValue(minutoDe(filas[idx].hora));
+        const xp = x.getPixelForValue(filas[idx]._m);
         ctx.strokeStyle = css("--accent"); ctx.lineWidth = 3;
         ctx.beginPath(); ctx.moveTo(xp, a.top); ctx.lineTo(xp, a.bottom); ctx.stroke();
       }
@@ -559,7 +628,7 @@ const lineas = {
     ctx.fillStyle = css("--meta"); ctx.font = '600 12px "Barlow", system-ui, sans-serif'; ctx.textAlign = "left";
     ctx.fillText(META + "% min", a.left + 6, ym - 6);
     if (idx >= 0 && ch.canvas.id === "tendencia" && filas[idx]) {
-      const xp = x.getPixelForValue(minutoDe(filas[idx].hora));
+      const xp = x.getPixelForValue(filas[idx]._m);
       ctx.strokeStyle = css("--accent"); ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(xp, a.top); ctx.lineTo(xp, a.bottom); ctx.stroke();
     }
@@ -571,7 +640,7 @@ const lineas = {
 function serie(campo) {
   const out = []; let prev = null;
   filas.forEach(f => {
-    const m = minutoDe(f.hora);
+    const m = f._m;
     if (prev !== null && m - prev > 2) out.push({ x: prev + 1, y: null });
     out.push({ x: m, y: num(f[campo]) }); prev = m;
   });
@@ -724,13 +793,46 @@ async function cargarVivo() {
 }
 
 function controlarVivo() {
-  const esHoy = $("fecha").value === hoyISO();
+  const esHoy = $("fecha").value === jornadaHoy();
   clearInterval(timerImg); clearInterval(timerVivo);
   if (!esHoy) { $("panelImagen").classList.add("hidden"); $("panelVivoGraf").classList.add("hidden"); acomodarMedia(); return; }
   cargarImagen(); cargarVivo();
   timerImg = setInterval(cargarImagen, IMAGEN_SEG * 1000);
   timerVivo = setInterval(cargarVivo, VIVO_SEG * 1000);
 }
+
+// ---------- CTD: calibrar toneladas del día ----------
+let ctdOk = false;
+function abrirCTD() {
+  if (!filas.length || idx < 0) return;
+  const f = filas[idx], ac = acumulados(filas, leerCTD($("fecha").value));
+  $("ctdInfo").innerHTML = `Día de producción ${$("fecha").value} · minuto <b>${f.hora}</b><br>Acumulado mostrado a esa hora: <b>${ac.ajust[idx].toFixed(1)} t</b> (calculado sin ajuste: ${ac.crudo[idx].toFixed(1)} t).<br>Elige el minuto en la barra antes de abrir CTD.`;
+  $("ctdClave").value = ""; $("ctdReal").value = ""; $("ctdMsg").textContent = "";
+  $("ctdClave").parentElement.querySelector('label[for="ctdClave"]').classList.toggle("hidden", ctdOk);
+  $("ctdClave").classList.toggle("hidden", ctdOk);
+  $("dlgCTD").showModal();
+  (ctdOk ? $("ctdReal") : $("ctdClave")).focus();
+}
+$("formCTD").addEventListener("submit", e => {
+  e.preventDefault();
+  if (!ctdOk && $("ctdClave").value !== CLAVE_CTD) { $("ctdMsg").textContent = "Contraseña incorrecta."; return; }
+  ctdOk = true;
+  const real = num($("ctdReal").value);
+  if (real === null || real < 0) { $("ctdMsg").textContent = "Escribe las toneladas reales."; return; }
+  const fecha = $("fecha").value, m = filas[idx]._m;
+  const lista = leerCTD(fecha).filter(a => a.m !== m);
+  lista.push({ m, real, cuando: new Date().toISOString() });
+  guardarCTD(fecha, lista);
+  $("dlgCTD").close(); dibujarResumen();
+});
+$("ctdBorrar").onclick = () => {
+  if (!ctdOk && $("ctdClave").value !== CLAVE_CTD) { $("ctdMsg").textContent = "Escribe la contraseña para quitar los ajustes."; return; }
+  ctdOk = true;
+  guardarCTD($("fecha").value, []);
+  $("dlgCTD").close(); dibujarResumen();
+};
+$("ctdCancelar").onclick = () => $("dlgCTD").close();
+$("resumen").addEventListener("click", e => { if (e.target.id === "btnCTD") abrirCTD(); });
 
 // ---------- Descarga a Excel ----------
 function cargarScript(src) {
@@ -745,19 +847,31 @@ async function descargarExcel() {
   est.textContent = "Preparando archivo…";
   try {
     if (!window.XLSX) await cargarScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
-    const filasR = await consultar(banda, { gid: banda.gid }, `select * where A >= '${d1}' and A <= '${d2}'`);
+    const d2sig = sumarDias(d2, 1);
+    const filasR = (await consultar(banda, { gid: banda.gid }, `select * where A >= '${d1}' and A <= '${d2sig}'`))
+      .filter(f => f.hora && f.fecha)
+      .map(f => { f._j = jornadaDe(f.fecha, f.hora); f._m = minJornada(f.hora); return f; })
+      .filter(f => f._j >= d1 && f._j <= d2);
     filasR.sort((a, b) => String(a.fecha_hora).localeCompare(String(b.fecha_hora)));
+    // Acumulado de toneladas por día de producción (con ajustes CTD de este navegador)
+    const acum = new Map();
+    [...new Set(filasR.map(f => f._j))].forEach(j => {
+      const lista = filasR.filter(f => f._j === j), ac = acumulados(lista, leerCTD(j));
+      lista.forEach((f, i) => acum.set(f, [ac.crudo[i], ac.ajust[i]]));
+    });
     if (!filasR.length) { est.textContent = "No hay datos en esas fechas."; return; }
     const n = v => num(v);
     const datos = filasR.map(f => {
       const o = {
-        "Fecha": f.fecha, "Hora": f.hora,
+        "Día de producción (07:00-07:00)": f._j, "Fecha": f.fecha, "Hora": f.hora,
         "Cumplimiento por peso estimado (%)": n(f.cumplimiento_peso_est_pct),
         "Cumple peso": f.cumple_peso_est,
         "Cumplimiento por conteo (%)": n(f.cumplimiento_conteo_pct),
         "Cumple conteo": f.cumple_conteo,
         "Toneladas por hora": n(f.toneladas_hora),
         "Toneladas en el minuto": n(f.toneladas_hora) === null ? null : +(n(f.toneladas_hora) / 60).toFixed(3),
+        "Toneladas acumuladas del día": +acum.get(f)[0].toFixed(2),
+        "Toneladas acumuladas ajustadas (CTD)": +acum.get(f)[1].toFixed(2),
       };
       MALLAS.forEach(m => { o[`% peso ${m[1]} (${m[2]})`] = n(f["peso_est_" + m[0]]); });
       MALLAS.forEach(m => { o[`% conteo ${m[1]} (${m[2]})`] = n(f["conteo_" + m[0]]); });
@@ -773,16 +887,17 @@ async function descargarExcel() {
     // Resumen por día
     const porDia = {};
     filasR.forEach(f => {
-      const r = porDia[f.fecha] ??= { "Fecha": f.fecha, "Toneladas": 0, "Minutos con registro": 0, "Minutos sin material": 0,
+      const r = porDia[f._j] ??= { "Día de producción (07:00-07:00)": f._j, "Toneladas": 0, "Toneladas ajustadas (CTD)": 0, "Minutos con registro": 0, "Minutos sin material": 0,
         "Minutos de paro": 0, "Minutos en vacío": 0, "Minutos que cumplen (peso)": 0 };
       r["Toneladas"] += (n(f.toneladas_hora) || 0) / 60;
+      r["Toneladas ajustadas (CTD)"] = acum.get(f)[1];
       r["Minutos con registro"]++;
       if (estadoClase(f.cumple) === "SIN") r["Minutos sin material"]++;
       r["Minutos de paro"] += (n(f.seg_paro) || 0) / 60;
       r["Minutos en vacío"] += (n(f.seg_vacio) || 0) / 60;
       if (estadoClase(f.cumple_peso_est) === "SI") r["Minutos que cumplen (peso)"]++;
     });
-    const resumen = Object.values(porDia).map(r => ({ ...r, "Toneladas": +r["Toneladas"].toFixed(1),
+    const resumen = Object.values(porDia).map(r => ({ ...r, "Toneladas": +r["Toneladas"].toFixed(1), "Toneladas ajustadas (CTD)": +r["Toneladas ajustadas (CTD)"].toFixed(1),
       "Minutos de paro": +r["Minutos de paro"].toFixed(1), "Minutos en vacío": +r["Minutos en vacío"].toFixed(1) }));
 
     const libro = XLSX.utils.book_new();
@@ -794,7 +909,7 @@ async function descargarExcel() {
     h2["!cols"] = Object.keys(resumen[0]).map(k => ({ wch: Math.max(12, k.length + 2) }));
     XLSX.utils.book_append_sheet(libro, h2, "Resumen por día");
     const h3 = XLSX.utils.aoa_to_sheet([["Granulometría " + banda.nombre], ["Periodo", d1 + " a " + d2],
-      ["Generado", new Date().toLocaleString("es-MX")], [], ["Diseño y desarrollo", "Ing. René Pascual Fuentes"],
+      ["Generado", new Date().toLocaleString("es-MX")], ["Día de producción", "de 07:00 a 06:59 del día siguiente"], [], ["Diseño y desarrollo", "Ing. René Pascual Fuentes"],
       ["", "Ingeniero Industrial · Ingeniero de Procesos"]]);
     h3["!cols"] = [{ wch: 22 }, { wch: 48 }];
     XLSX.utils.book_append_sheet(libro, h3, "Acerca de");
@@ -810,7 +925,7 @@ function moverDia(d) {
 }
 function cercano(minuto) {
   let mejor = 0, dist = Infinity;
-  filas.forEach((f, i) => { const d = Math.abs(minutoDe(f.hora) - minuto); if (d < dist) { dist = d; mejor = i; } });
+  filas.forEach((f, i) => { const d = Math.abs(f._m - minuto); if (d < dist) { dist = d; mejor = i; } });
   return mejor;
 }
 
@@ -818,17 +933,17 @@ BANDAS.forEach((b, i) => $("banda").add(new Option(b.nombre, i)));
 if (BANDAS.length < 2) $("banda").classList.add("hidden");
 $("titulo").textContent = "Granulometría " + BANDAS[0].nombre; document.title = "Granulometría " + BANDAS[0].nombre + " · Ing. René Pascual Fuentes";
 $("banda").onchange = () => { $("titulo").textContent = "Granulometría " + BANDAS[$("banda").value].nombre; idx = -1; cargar(false); };
-$("fecha").value = hoyISO();
-$("fecha").max = hoyISO();
+$("fecha").value = jornadaHoy();
+$("fecha").max = jornadaHoy();
 $("fecha").onchange = () => { idx = -1; cargar(false); };
 $("diaAnt").onclick = () => moverDia(-1);
 $("diaSig").onclick = () => moverDia(1);
-$("hoy").onclick = () => { $("fecha").value = hoyISO(); idx = -1; cargar(false); };
+$("hoy").onclick = () => { $("fecha").value = jornadaHoy(); idx = -1; cargar(false); };
 $("minAnt").onclick = () => seleccionar(idx - 1);
 $("minSig").onclick = () => seleccionar(idx + 1);
 $("ultimo").onclick = () => seleccionar(filas.length - 1);
 $("desde").value = $("hasta").value = $("fecha").value;
-$("desde").max = $("hasta").max = hoyISO();
+$("desde").max = $("hasta").max = jornadaHoy();
 $("descargar").onclick = descargarExcel;
 $("verDetecciones").onclick = () => {
   verDet = !verDet;
