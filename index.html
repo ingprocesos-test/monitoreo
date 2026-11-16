@@ -12,7 +12,7 @@
 :root{
   --bg:#EDF0F0; --surface:#FFFFFF; --ink:#1F2A30; --muted:#5E6B72; --line:#D3D9DB;
   --accent:#F2B705; --ok:#2E8B57; --bad:#C0392B; --warn:#C98404; --none:#B7BEC2;
-  --peso:#0B4FC4; --conteo:#2E9E44; --meta:#D62828;
+  --peso:#0B4FC4; --conteo:#2E9E44; --meta:#D62828; --paro:#4A5A63;
   color-scheme:light; box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -20,13 +20,13 @@
   :root:not([data-theme="light"]){
     --bg:#172024; --surface:#212B30; --ink:#E6EBED; --muted:#9AA7AE; --line:#34424A;
     --accent:#F2B705; --ok:#4CB17A; --bad:#E0604F; --warn:#E3A62B; --none:#56646B;
-    --peso:#5B92F5; --conteo:#5CC46E; --meta:#FF6B5E; color-scheme:dark;
+    --peso:#5B92F5; --conteo:#5CC46E; --meta:#FF6B5E; --paro:#8796A0; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#172024; --surface:#212B30; --ink:#E6EBED; --muted:#9AA7AE; --line:#34424A;
   --accent:#F2B705; --ok:#4CB17A; --bad:#E0604F; --warn:#E3A62B; --none:#56646B;
-  --peso:#5B92F5; --conteo:#5CC46E; --meta:#FF6B5E; color-scheme:dark;
+  --peso:#5B92F5; --conteo:#5CC46E; --meta:#FF6B5E; --paro:#8796A0; color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -86,8 +86,10 @@ button:hover{border-color:var(--muted)}
 .btn-prim{background:var(--ok);color:#fff;border-color:var(--ok);font-weight:600}
 
 /* ---- Resumen y minuto ---- */
-.dos{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,3fr);gap:8px;margin-top:6px}
-@media (max-width:820px){.dos{grid-template-columns:1fr}}
+.dos{display:grid;grid-template-columns:minmax(0,9fr) minmax(0,4fr);gap:8px;margin-top:6px}
+@media (min-width:1201px){#resumen{grid-template-columns:minmax(0,1.4fr) repeat(8,minmax(0,1fr))} #datos{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .dos .cell{padding:3px 7px} .dos .cell .k{font-size:.64rem}}
+@media (max-width:1200px){.dos{grid-template-columns:1fr}}
 .seccion{font:600 .7rem/1.2 "Barlow",sans-serif;margin:0 0 2px;color:var(--muted);letter-spacing:.1em}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:1px;background:var(--line);
   border:1px solid var(--line);border-radius:6px;overflow:hidden}
@@ -100,6 +102,7 @@ button:hover{border-color:var(--muted)}
 .cell .fila{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .tag{display:inline-block;font-weight:600;font-size:.64rem;padding:0 5px;border-radius:3px;color:#fff}
 .t-SI{background:var(--ok)} .t-NO{background:var(--bad)} .t-POCOS{background:var(--warn)} .t-SIN{background:var(--none);color:var(--ink)}
+.t-CON_MATERIAL{background:var(--ok)} .t-VACIO{background:var(--none);color:var(--ink)} .t-PARO{background:var(--paro)}
 .alert{margin-top:4px;padding:2px 10px;border-left:3px solid var(--warn);background:var(--surface);border-radius:4px;font-size:.78rem}
 .alert:empty{display:none}
 
@@ -134,6 +137,10 @@ dialog#dlgCTD::backdrop{background:rgba(0,0,0,.45)}
 .vivo figcaption{color:var(--muted);font-size:.68rem;margin-top:2px}
 .vivo figcaption.viejo{color:var(--meta);font-weight:600}
 .foto{color:var(--muted);font-size:.66rem;overflow-wrap:anywhere}
+#contenido.solo-imagen .dos,#contenido.solo-imagen .alert,#contenido.solo-imagen .fila3,
+#contenido.solo-imagen .tablero > .panel:not(.vivo){display:none}
+#contenido.solo-imagen .tablero{grid-template-columns:minmax(0,1fr)}
+#contenido.solo-imagen .vivo img{height:clamp(240px,58vh,620px)}
 .empty{margin-top:8px;padding:20px;text-align:center;background:var(--surface);border:1px dashed var(--line);border-radius:8px}
 footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
 @media (max-width:600px){ .chartbox{height:230px} .vivo img{height:auto;aspect-ratio:4/3} }
@@ -203,7 +210,8 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
         <span><i style="background:var(--ok)"></i>Cumple</span>
         <span><i style="background:var(--bad)"></i>No cumple</span>
         <span><i style="background:var(--warn)"></i>Pocos datos</span>
-        <span><i style="background:var(--none)"></i>Sin material</span>
+        <span><i style="background:var(--none)"></i>Sin material / vacío</span>
+        <span><i style="background:var(--paro)"></i>Paro</span>
       </div>
     </div>
   </section>
@@ -319,6 +327,8 @@ const IMAGEN_SEG = 3;        // cada cuánto se actualiza la imagen en vivo
 const VIVO_SEG = 3;          // cada cuánto se actualiza la gráfica en vivo
 const VIVO_MIN = 30;         // minutos que muestra la gráfica en vivo
 const META = 80;             // % mínimo de cumplimiento
+const MIN_SEG_MOV = 3;       // s de banda en movimiento dentro de un minuto para contarlo como banda trabajando
+                             // (igual que CICLO_SEG_MOVIMIENTO del programa de Python)
 // =================================================
 
 const MALLAS = [
@@ -358,6 +368,51 @@ const pct = m => (m - rIni) / (rFin - rIni) * 100;
 
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const num = v => { if (v === null || v === undefined || v === "") return null; const n = parseFloat(String(v).replace(",", ".")); return isNaN(n) ? null : n; };
+
+// ---------- Estado de cada minuto: con material, vacío o paro ----------
+// Si el programa de Python ya manda "toneladas_minuto" y "estado_banda", se usan tal cual.
+// Si no (datos viejos), se calcula aquí: sin rocas contadas, en paro o en vacío = 0 toneladas y sin calidad.
+const segOperando = f => { const p = num(f.seg_paro), v = num(f.seg_vacio);
+  return p === null && v === null ? 60 : Math.max(0, Math.min(60, 60 - (p || 0) - (v || 0))); };
+const hayRocas = f => MALLAS.some(m => (num(f["peso_est_" + m[0]]) || 0) > 0 || (num(f["conteo_" + m[0]]) || 0) > 0);
+// Datos nuevos (traen seg_con_material): hubo material si se contaron rocas y la banda corrió con rocas
+// al menos un segundo; la calidad y las toneladas ya vienen en 0/vacías desde Python cuando no.
+const conMaterialFila = f => {
+  const scm = num(f.seg_con_material);
+  if (scm !== null) return hayRocas(f) && scm > 0;
+  const e = estadoBanda(f.estado_banda);
+  if (e === "PARO" || e === "VACIO") return false;
+  return hayRocas(f) && segOperando(f) > 0; };
+// Estado de la banda normalizado: CON_MATERIAL / VACIO / PARO ("" si no se sabe)
+const estadoBanda = v => { const e = String(v || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_");
+  return e.startsWith("PARO") ? "PARO" : e.startsWith("VAC") ? "VACIO" : e.startsWith("CON") ? "CON_MATERIAL" : ""; };
+const estadoFila = f => { const e = estadoBanda(f.estado_banda); if (e) return e;
+  if (conMaterialFila(f)) return "CON_MATERIAL";
+  return (num(f.seg_paro) || 0) > 0 && (num(f.seg_paro) || 0) >= (num(f.seg_vacio) || 0) ? "PARO" : "VACIO"; };
+const textoEstado = e => ({ CON_MATERIAL: "CON MATERIAL", VACIO: "VACÍO", PARO: "PARO" })[e] || "—";
+const tagEstado = e => `<span class="tag t-${e || "SIN"}">${textoEstado(e)}</span>`;
+const tonMinuto = f => { const tm = num(f.toneladas_minuto); if (tm !== null) return tm;
+  return conMaterialFila(f) ? (num(f.toneladas_hora) || 0) / 60 * segOperando(f) / 60 : 0; };
+const tonHoraEf = f => Math.round(tonMinuto(f) * 600) / 10;
+// ---- Ciclo productivo: del primer movimiento de la banda (arranque) al último (paro) ----
+// Segundos con la banda moviéndose en un minuto (con material + vacío). Datos viejos: se estima.
+const segMov = f => { const sm = num(f.seg_movimiento); if (sm !== null) return sm;
+  const v = num(f.seg_vacio) || 0, c = num(f.seg_con_material); if (c !== null) return c + v;
+  return hayRocas(f) ? v + Math.max(0, 60 - (num(f.seg_paro) || 0) - v) : v; };
+function cicloDia(lista) {
+  let arr = null, ult = null, paroC = 0, pend = 0, paroD = 0;
+  lista.forEach(f => {
+    const p = num(f.seg_paro) || 0; paroD += p;
+    if (segMov(f) >= MIN_SEG_MOV) {           // la banda se movió en este minuto
+      if (arr === null) arr = f._m; else paroC += pend;   // paros entre arranque y paro sí cuentan
+      pend = 0; paroC += p; ult = f._m;
+    } else if (arr !== null) pend += p;       // paro después del último movimiento: cuenta solo si vuelve a arrancar
+  });
+  return { arr, fin: ult === null ? null : ult + 1, ult, paroC: paroC / 60, paroD: paroD / 60 };
+}
+// "45 s con material · 15 s paro" (solo lo que tenga dato)
+const segEstados = f => [["seg_con_material", "con material"], ["seg_vacio", "vacío"], ["seg_paro", "paro"]]
+  .map(([c, t]) => num(f[c]) ? `${Math.round(num(f[c]))} s ${t}` : null).filter(Boolean).join(" · ") || "";
 const isoDe = d => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10); };
 const hoyISO = () => isoDe(new Date());
 const sumarDias = (iso, n) => { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return isoDe(d); };
@@ -422,7 +477,7 @@ async function cargar(mantenerFinal) {
     filas = nuevas;
     if (!filas.length) { idx = -1; mostrarVacio(fecha); }
     else {
-      $("vacio").classList.add("hidden"); $("contenido").classList.remove("hidden");
+      $("vacio").classList.add("hidden"); $("contenido").classList.remove("hidden", "solo-imagen");
       if (mantenerFinal && !estabaAlFinal && horaAntes) idx = Math.max(0, filas.findIndex(f => f.hora === horaAntes));
       else idx = filas.length - 1;
       calcularRango(); dibujarTira(); dibujarTendencia(); dibujarCalidad(); seleccionar(idx);
@@ -443,9 +498,9 @@ async function cargar(mantenerFinal) {
 }
 
 function mostrarVacio(fecha) {
-  $("contenido").classList.add("hidden");
+  $("contenido").classList.remove("hidden"); $("contenido").classList.add("solo-imagen");
   const v = $("vacio"); v.classList.remove("hidden");
-  v.textContent = `No hay registros del ${fecha}. Elige otro día con las flechas o el calendario.`;
+  v.textContent = `No hay registros del ${fecha}. Abajo se muestra la última imagen de la banda. Elige otro día con las flechas o el calendario.`;
   $("reloj").textContent = "--:--";
   const c = $("strip"); c.getContext("2d").clearRect(0, 0, c.width, c.height);
   $("cursor").style.left = "0%";
@@ -468,7 +523,7 @@ const guardarCTD = (fecha, lista) => { try { localStorage.setItem(claveCTD(fecha
 function acumulados(lista, ajustes) {
   const crudo = [], ajust = [];
   let t = 0;
-  lista.forEach(f => { t += (num(f.toneladas_hora) || 0) / 60; crudo.push(t); });
+  lista.forEach(f => { t += tonMinuto(f); crudo.push(t); });
   const aj = [...ajustes].sort((a, b) => a.m - b.m);
   lista.forEach((f, i) => {
     const a = aj.filter(x => x.m <= f._m).pop();
@@ -491,11 +546,18 @@ function dibujarResumen() {
   } else {
     vacio = filas.filter(f => estadoClase(f.cumple) === "SIN").length;
   }
-  const conMaterial = Math.max(0, filas.length - vacio - (paro || 0));
+  const conSeg = filas.some(f => num(f.seg_con_material) !== null);
+  const conMaterial = conSeg ? filas.reduce((t, f) => t + (num(f.seg_con_material) || 0), 0) / 60
+                             : Math.max(0, filas.length - vacio - (paro || 0));
   const sinRegistro = Math.max(0, transcurridos - filas.length);
   const ac = acumulados(filas, leerCTD($("fecha").value));
   const total = ac.ajust[filas.length - 1], hasta = ac.ajust[idx] ?? 0;
   const f = filas[idx];
+  const cic = cicloDia(filas);
+  const enMarcha = esHoy && cic.ult !== null && cic.ult === filas[filas.length - 1]._m && minutoJornadaAhora() - cic.ult <= 3;
+  const hArr = cic.arr === null ? "—" : hhmm(cic.arr);
+  const hPar = cic.fin === null ? "—" : enMarcha ? "En marcha" : hhmm(cic.fin);
+  const ciclo = cic.arr === null ? null : cic.fin - cic.arr;
   let notaCTD = "";
   if (ac.ultimo) {
     const j = filas.findLastIndex(g => g._m <= ac.ultimo.m);
@@ -506,14 +568,23 @@ function dibujarResumen() {
   $("resumen").innerHTML = `
     <div class="cell"><div class="k">Toneladas del día</div>
       <div class="fila"><div class="v">${total.toFixed(1)}<small> t</small></div>${ac.ultimo ? '<span class="tag t-POCOS" title="Ajustado con CTD">AJ</span>' : ""}<button class="ctd" id="btnCTD" title="Calibrar toneladas del día">CTD</button></div>
-      <div class="nota">07:00–07:00 · a las ${f?.hora ?? "--:--"}: ${hasta.toFixed(1)} t</div>${notaCTD}</div>
-    <div class="cell"><div class="k">Con material</div><div class="v">${duracion(conMaterial)}</div></div>
+      <div class="nota">a las ${f?.hora ?? "--:--"}: ${hasta.toFixed(1)} t</div>${notaCTD}</div>
+    <div class="cell"><div class="k">Horario de arranque</div><div class="v">${hArr}</div>
+      <div class="nota">primer movimiento</div></div>
+    <div class="cell"><div class="k">Horario de paro</div><div class="v">${hPar}</div>
+      <div class="nota">${enMarcha ? "últ. mov. " + hhmm(cic.fin) : "banda detenida"}</div></div>
+    <div class="cell"><div class="k">Tiempo de paro</div><div class="v">${cic.arr === null || paro === null ? "—" : duracion(cic.paroC)}</div>
+      <div class="nota">dentro del ciclo</div></div>
     <div class="cell"><div class="k">Tiempo en vacío</div><div class="v">${duracion(vacio)}</div>
-      <div class="nota">banda moviéndose sin roca</div></div>
-    <div class="cell"><div class="k">Tiempo de paro</div><div class="v">${paro === null ? "—" : duracion(paro)}</div>
-      <div class="nota">${paro === null ? "se activa con las marcas en la banda" : "banda detenida"}</div></div>
-    <div class="cell"><div class="k">Sin registro</div><div class="v">${duracion(sinRegistro)}</div>
-      <div class="nota">cámara o programa apagado</div></div>`;
+      <div class="nota">sin roca</div></div>
+    <div class="cell"><div class="k">Tiempo con material</div><div class="v">${duracion(conMaterial)}</div>
+      <div class="nota">con roca</div></div>
+    <div class="cell"><div class="k">Tiempo de ciclo productivo</div><div class="v">${ciclo === null ? "—" : duracion(ciclo)}</div>
+      <div class="nota">${ciclo === null ? "la banda no ha arrancado" : enMarcha ? "en marcha" : "paro − arranque"}</div></div>
+    <div class="cell"><div class="k">Tiempo de paro / día</div><div class="v">${paro === null ? "—" : duracion(paro)}</div>
+      <div class="nota">${paro === null ? "requiere marcas" : "07:00 a 07:00"}</div></div>
+    <div class="cell"><div class="k">Tiempo sin registro</div><div class="v">${duracion(sinRegistro)}</div>
+      <div class="nota">programa apagado</div></div>`;
 }
 
 // ---------- Tira del día (un trazo por minuto) ----------
@@ -524,7 +595,7 @@ function dibujarTira() {
   const w = c.width / (rFin - rIni);
   filas.forEach(f => {
     const m = f._m; if (m === null || m < rIni || m >= rFin) return;
-    g.fillStyle = colorEstado(f.cumple);
+    g.fillStyle = !conMaterialFila(f) && estadoFila(f) === "PARO" ? css("--paro") : colorEstado(f.cumple);
     g.fillRect((m - rIni) * w, 0, Math.max(w - (w > 4 ? 1 : 0), 1.5 * dpr), c.height);
   });
 }
@@ -543,7 +614,10 @@ function seleccionar(i) {
   $("datos").innerHTML = `
     <div class="cell"><div class="k">Cumplimiento por peso estimado</div><div class="fila"><div class="v">${val(f.cumplimiento_peso_est_pct, "%")}</div>${tag(f.cumple_peso_est)}</div></div>
     <div class="cell"><div class="k">Cumplimiento por conteo</div><div class="fila"><div class="v">${val(f.cumplimiento_conteo_pct, "%")}</div>${tag(f.cumple_conteo)}</div></div>
-    <div class="cell"><div class="k">Toneladas por hora</div><div class="v">${val(f.toneladas_hora, "t/h")}</div></div>`;
+    <div class="cell"><div class="k">Toneladas por hora</div><div class="v">${val(tonHoraEf(f), "t/h")}</div>
+      <div class="nota">${tonMinuto(f).toFixed(2)} t/min</div></div>
+    <div class="cell"><div class="k">Estado de la banda</div><div class="fila">${tagEstado(estadoFila(f))}</div>
+      <div class="nota">${segEstados(f)}</div></div>`;
   $("alerta").textContent = f.alerta ? "Alerta: " + f.alerta : "";
   $("foto").textContent = f.foto ? "Foto de este minuto (en la PC de planta): " + f.foto : "";
 
@@ -599,7 +673,6 @@ const mmCorto = t => t.startsWith("<") ? "<" + parseFloat(t.slice(1)) : String(p
 
 // Promedio del día de producción (07:00) hasta el minuto elegido, solo minutos con material
 let grafProm = null;
-const conMaterialFila = f => MALLAS.some(m => (num(f["peso_est_" + m[0]]) || 0) > 0 || (num(f["conteo_" + m[0]]) || 0) > 0);
 function promedioCurva() {
   const hasta = filas.slice(0, idx + 1).filter(conMaterialFila);
   const prom = {};
@@ -672,12 +745,12 @@ const lineas = {
 };
 
 // Serie con huecos: si faltan minutos, la línea se corta en vez de unir puntos lejanos
-function serie(campo) {
+function serie(campo, filtro) {
   const out = []; let prev = null;
   filas.forEach(f => {
     const m = f._m;
     if (prev !== null && m - prev > 2) out.push({ x: prev + 1, y: null });
-    out.push({ x: m, y: num(f[campo]) }); prev = m;
+    out.push({ x: m, y: filtro && !filtro(f) ? null : num(f[campo]) }); prev = m;
   });
   return out;
 }
@@ -712,21 +785,22 @@ let graf3 = null;
 const claseColor = c => { c = (c || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return c.startsWith("GRIS") || c === "NORMAL" ? "GRIS" : c.startsWith("CAFE") ? "CAFE" : c.startsWith("MARRON") ? "MARRON" : "OTRO"; };
 const textoColor = c => ({ GRIS: "GRIS", CAFE: "CAFÉ", MARRON: "MARRÓN" })[claseColor(c)] || (c || "—");
-const promedio = campo => { const v = filas.map(f => num(f[campo])).filter(x => x !== null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+const promedio = campo => { const v = filas.filter(conMaterialFila).map(f => num(f[campo])).filter(x => x !== null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
 
 function estadoCalidad(f) {
-  const ca = num(f.caco3_pct_estimado), mg = num(f.mgco3_pct_estimado), pca = promedio("caco3_pct_estimado"), pmg = promedio("mgco3_pct_estimado");
+  const hay = conMaterialFila(f);
+  const ca = hay ? num(f.caco3_pct_estimado) : null, mg = hay ? num(f.mgco3_pct_estimado) : null, pca = promedio("caco3_pct_estimado"), pmg = promedio("mgco3_pct_estimado");
   $("estadoCalidad").innerHTML =
     `<span class="caco3">CaCO₃ ${ca === null ? "—" : ca.toFixed(1) + "%"}</span>` +
     `<span class="mgco3">MgCO₃ ${mg === null ? "—" : mg.toFixed(1) + "%"}</span>` +
-    (f.color_clasificado ? `<span class="tag-color c-${claseColor(f.color_clasificado)}">${textoColor(f.color_clasificado)}</span>` : "") +
+    (hay && f.color_clasificado ? `<span class="tag-color c-${claseColor(f.color_clasificado)}">${textoColor(f.color_clasificado)}</span>` : "") +
     (pca !== null ? `<span class="gris">Prom. día: ${pca.toFixed(1)}% / ${pmg === null ? "—" : pmg.toFixed(1) + "%"}</span>` : "");
 }
 
 function dibujarCalidad() {
   const datos = { datasets: [
-    { label: "CaCO₃ %", data: serie("caco3_pct_estimado"), yAxisID: "y", borderColor: css("--peso"), backgroundColor: css("--peso"), borderWidth: 2.5, pointRadius: 0, spanGaps: false },
-    { label: "MgCO₃ %", data: serie("mgco3_pct_estimado"), yAxisID: "y2", borderColor: "#A0703A", backgroundColor: "#A0703A", borderWidth: 2, pointRadius: 0, spanGaps: false },
+    { label: "CaCO₃ %", data: serie("caco3_pct_estimado", conMaterialFila), yAxisID: "y", borderColor: css("--peso"), backgroundColor: css("--peso"), borderWidth: 2.5, pointRadius: 0, spanGaps: false },
+    { label: "MgCO₃ %", data: serie("mgco3_pct_estimado", conMaterialFila), yAxisID: "y2", borderColor: "#A0703A", backgroundColor: "#A0703A", borderWidth: 2, pointRadius: 0, spanGaps: false },
   ] };
   const ejeX = { type: "linear", min: rIni, max: rFin,
     ticks: { color: css("--muted"), stepSize: pasoHoras() * 60, maxRotation: 0, callback: v => hhmm(v) }, grid: { display: false } };
@@ -747,7 +821,7 @@ function dibujarCalidad() {
   });
 }
 
-// ---------- En vivo (imagen cada 5 s y datos cada 3 s) ----------
+// ---------- En vivo (imagen y datos cada 3 s) ----------
 let grafVivo = null, timerImg = null, timerVivo = null;
 // Convierte "AAAA-MM-DD HH:MM:SS" a milisegundos (así funciona aunque cruce la medianoche)
 const msDe = t => { const m = /(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2}):(\d{2})/.exec(t || "");
@@ -780,7 +854,8 @@ async function cargarImagen() {
     const t = new Date(String(cuando).replace(" ", "T"));
     const atraso = (Date.now() - t.getTime()) / 1000;
     const cap = $("imgHora");
-    cap.textContent = atraso > 120 ? `Sin imagen reciente · última: ${cuando}` : `Imagen de las ${String(cuando).slice(11)}`;
+    const hace = atraso < 3600 ? Math.round(atraso / 60) + " min" : atraso < 172800 ? Math.round(atraso / 3600) + " h" : Math.floor(atraso / 86400) + " días";
+    cap.textContent = atraso > 120 ? `Última imagen de la banda: ${cuando} · hace ${hace}` : `Imagen de las ${String(cuando).slice(11)}`;
     cap.classList.toggle("viejo", atraso > 120);
   } catch (e) { /* si aún no existe la pestaña, no se muestra */ }
 }
@@ -793,6 +868,7 @@ async function cargarVivo() {
     const cT = ej.fecha_hora !== undefined ? "fecha_hora" : (buscarCol(ej, "fecha") || buscarCol(ej, "hora"));
     const cP = buscarCol(ej, "cumpl", "peso"), cC = buscarCol(ej, "cumpl", "conteo");
     const cCa = buscarCol(ej, "caco3"), cMg = buscarCol(ej, "mgco3");
+    const cEst = buscarCol(ej, "estado_banda"), cTon = buscarCol(ej, "toneladas");
     if (!cT || !cP) return;
     const pts = r.map(f => ({ s: msDe(f[cT]), p: num(f[cP]), c: cC ? num(f[cC]) : null })).filter(x => x.s !== null).sort((a, b) => a.s - b.s);
     if (!pts.length) return;
@@ -804,7 +880,9 @@ async function cargarVivo() {
     const linea = (n, v) => v === null ? `<span class="gris">${n}: —</span>` :
       `<span class="${v >= META ? "ok" : "mal"}">${n}: ${Math.round(v)}% ${v >= META ? "CUMPLE" : "NO CUMPLE"}</span>`;
     const ultFila = r[r.length - 1], ca = cCa ? num(ultFila[cCa]) : null, mg = cMg ? num(ultFila[cMg]) : null;
-    $("estadoVivo").innerHTML = linea("Peso est.", ult.p) + linea("Conteo", ult.c) +
+    const estV = cEst ? estadoBanda(ultFila[cEst]) : "", tonV = cTon ? num(ultFila[cTon]) : null;
+    $("estadoVivo").innerHTML = (estV ? tagEstado(estV) : "") + linea("Peso est.", ult.p) + linea("Conteo", ult.c) +
+      (tonV !== null ? `<span class="gris">${Math.round(tonV)} t/h</span>` : "") +
       (ca !== null ? `<span class="caco3">CaCO₃ ${ca.toFixed(1)}%</span><span class="mgco3">MgCO₃ ${mg === null ? "—" : mg.toFixed(1) + "%"}</span>` : "") +
       `<span class="gris">${hms(ult.s)}</span>`;
 
@@ -830,10 +908,10 @@ async function cargarVivo() {
 function controlarVivo() {
   const esHoy = $("fecha").value === jornadaHoy();
   clearInterval(timerImg); clearInterval(timerVivo);
-  if (!esHoy) { $("panelImagen").classList.add("hidden"); $("panelVivoGraf").classList.add("hidden"); acomodarMedia(); return; }
-  cargarImagen(); cargarVivo();
-  timerImg = setInterval(cargarImagen, IMAGEN_SEG * 1000);
-  timerVivo = setInterval(cargarVivo, VIVO_SEG * 1000);
+  // La imagen siempre muestra la última que llegó, aunque sea de otro día
+  cargarImagen(); timerImg = setInterval(cargarImagen, IMAGEN_SEG * 1000);
+  if (!esHoy) { $("panelVivoGraf").classList.add("hidden"); acomodarMedia(); return; }
+  cargarVivo(); timerVivo = setInterval(cargarVivo, VIVO_SEG * 1000);
 }
 
 // ---------- CTD: calibrar toneladas del día ----------
@@ -903,19 +981,24 @@ async function descargarExcel() {
         "Cumple peso": f.cumple_peso_est,
         "Cumplimiento por conteo (%)": n(f.cumplimiento_conteo_pct),
         "Cumple conteo": f.cumple_conteo,
-        "Toneladas por hora": n(f.toneladas_hora),
-        "Toneladas en el minuto": n(f.toneladas_hora) === null ? null : +(n(f.toneladas_hora) / 60).toFixed(3),
+        "Toneladas por hora": tonHoraEf(f),
+        "Toneladas en el minuto": +tonMinuto(f).toFixed(3),
+        "Estado de la banda": textoEstado(estadoFila(f)),
         "Toneladas acumuladas del día": +acum.get(f)[0].toFixed(2),
         "Toneladas acumuladas ajustadas (CTD)": +acum.get(f)[1].toFixed(2),
       };
       MALLAS.forEach(m => { o[`% peso ${m[1]} (${m[2]})`] = n(f["peso_est_" + m[0]]); });
       MALLAS.forEach(m => { o[`% conteo ${m[1]} (${m[2]})`] = n(f["conteo_" + m[0]]); });
+      o["Segundos en movimiento"] = +segMov(f).toFixed(0);
+      o["Segundos con material"] = n(f.seg_con_material);
       o["Segundos de paro"] = n(f.seg_paro);
       o["Segundos en vacío"] = n(f.seg_vacio);
-      o["CaCO3 estimado por color (%)"] = n(f.caco3_pct_estimado);
-      o["MgCO3 estimado por color (%)"] = n(f.mgco3_pct_estimado);
-      o["Índice café (0-1)"] = n(f.indice_cafe);
-      o["Color clasificado"] = f.color_clasificado;
+      o["Toneladas acumuladas (programa, desde 07:00)"] = n(f.toneladas_dia_acumuladas);
+      const hay = conMaterialFila(f);
+      o["CaCO3 estimado por color (%)"] = hay ? n(f.caco3_pct_estimado) : null;
+      o["MgCO3 estimado por color (%)"] = hay ? n(f.mgco3_pct_estimado) : null;
+      o["Índice café (0-1)"] = hay ? n(f.indice_cafe) : null;
+      o["Color clasificado"] = hay ? f.color_clasificado : "";
       o["Alerta"] = f.alerta;
       return o;
     });
@@ -923,17 +1006,27 @@ async function descargarExcel() {
     const porDia = {};
     filasR.forEach(f => {
       const r = porDia[f._j] ??= { "Día de producción (07:00-07:00)": f._j, "Toneladas": 0, "Toneladas ajustadas (CTD)": 0, "Minutos con registro": 0, "Minutos sin material": 0,
-        "Minutos de paro": 0, "Minutos en vacío": 0, "Minutos que cumplen (peso)": 0 };
-      r["Toneladas"] += (n(f.toneladas_hora) || 0) / 60;
+        "Minutos con material": 0, "Tiempo de paro / día (min)": 0, "Minutos en vacío": 0, "Minutos que cumplen (peso)": 0 };
+      // "Tiempo de paro / día (min)" = tiempo de paro / día (todo el día de producción)
+      r["Toneladas"] += tonMinuto(f);
       r["Toneladas ajustadas (CTD)"] = acum.get(f)[1];
       r["Minutos con registro"]++;
-      if (estadoClase(f.cumple) === "SIN") r["Minutos sin material"]++;
-      r["Minutos de paro"] += (n(f.seg_paro) || 0) / 60;
+      if (!conMaterialFila(f)) r["Minutos sin material"]++;
+      r["Minutos con material"] += num(f.seg_con_material) !== null ? (n(f.seg_con_material) || 0) / 60 : (conMaterialFila(f) ? segOperando(f) / 60 : 0);
+      r["Tiempo de paro / día (min)"] += (n(f.seg_paro) || 0) / 60;
       r["Minutos en vacío"] += (n(f.seg_vacio) || 0) / 60;
       if (estadoClase(f.cumple_peso_est) === "SI") r["Minutos que cumplen (peso)"]++;
     });
+    Object.values(porDia).forEach(r => {
+      const c = cicloDia(filasR.filter(f => f._j === r["Día de producción (07:00-07:00)"]));
+      r["Horario de arranque"] = c.arr === null ? "" : hhmm(c.arr);
+      r["Horario de paro"] = c.fin === null ? "" : hhmm(c.fin);
+      r["Tiempo de ciclo productivo (h)"] = c.arr === null ? null : +((c.fin - c.arr) / 60).toFixed(2);
+      r["Tiempo de paro dentro del ciclo (min)"] = c.arr === null ? null : +c.paroC.toFixed(1);
+    });
     const resumen = Object.values(porDia).map(r => ({ ...r, "Toneladas": +r["Toneladas"].toFixed(1), "Toneladas ajustadas (CTD)": +r["Toneladas ajustadas (CTD)"].toFixed(1),
-      "Minutos de paro": +r["Minutos de paro"].toFixed(1), "Minutos en vacío": +r["Minutos en vacío"].toFixed(1) }));
+      "Minutos con material": +r["Minutos con material"].toFixed(1),
+      "Tiempo de paro / día (min)": +r["Tiempo de paro / día (min)"].toFixed(1), "Minutos en vacío": +r["Minutos en vacío"].toFixed(1) }));
 
     const libro = XLSX.utils.book_new();
     const h1 = XLSX.utils.json_to_sheet(datos);
