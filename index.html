@@ -103,6 +103,7 @@ button:hover{border-color:var(--muted)}
 .tag{display:inline-block;font-weight:600;font-size:.64rem;padding:0 5px;border-radius:3px;color:#fff}
 .t-SI{background:var(--ok)} .t-NO{background:var(--bad)} .t-POCOS{background:var(--warn)} .t-SIN{background:var(--none);color:var(--ink)}
 .t-CON_MATERIAL{background:var(--ok)} .t-VACIO{background:var(--none);color:var(--ink)} .t-PARO{background:var(--paro)}
+.t-SIN_SENAL{background:var(--surface);color:var(--ink);border:1px solid var(--muted)}
 .alert{margin-top:4px;padding:2px 10px;border-left:3px solid var(--warn);background:var(--surface);border-radius:4px;font-size:.78rem}
 .alert:empty{display:none}
 
@@ -212,6 +213,7 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
         <span><i style="background:var(--warn)"></i>Pocos datos</span>
         <span><i style="background:var(--none)"></i>Sin material / vacío</span>
         <span><i style="background:var(--paro)"></i>Paro</span>
+        <span><i style="background:transparent;border:1px solid var(--muted)"></i>Sin registro / sin señal</span>
       </div>
     </div>
   </section>
@@ -385,11 +387,12 @@ const conMaterialFila = f => {
   return hayRocas(f) && segOperando(f) > 0; };
 // Estado de la banda normalizado: CON_MATERIAL / VACIO / PARO ("" si no se sabe)
 const estadoBanda = v => { const e = String(v || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_");
-  return e.startsWith("PARO") ? "PARO" : e.startsWith("VAC") ? "VACIO" : e.startsWith("CON") ? "CON_MATERIAL" : ""; };
+  return e.startsWith("PARO") ? "PARO" : e.startsWith("VAC") ? "VACIO" : e.startsWith("CON") ? "CON_MATERIAL"
+       : e.startsWith("SIN") ? "SIN_SENAL" : ""; };
 const estadoFila = f => { const e = estadoBanda(f.estado_banda); if (e) return e;
   if (conMaterialFila(f)) return "CON_MATERIAL";
   return (num(f.seg_paro) || 0) > 0 && (num(f.seg_paro) || 0) >= (num(f.seg_vacio) || 0) ? "PARO" : "VACIO"; };
-const textoEstado = e => ({ CON_MATERIAL: "CON MATERIAL", VACIO: "VACÍO", PARO: "PARO" })[e] || "—";
+const textoEstado = e => ({ CON_MATERIAL: "CON MATERIAL", VACIO: "VACÍO", PARO: "PARO", SIN_SENAL: "SIN SEÑAL" })[e] || "—";
 const tagEstado = e => `<span class="tag t-${e || "SIN"}">${textoEstado(e)}</span>`;
 const tonMinuto = f => { const tm = num(f.toneladas_minuto); if (tm !== null) return tm;
   return conMaterialFila(f) ? (num(f.toneladas_hora) || 0) / 60 * segOperando(f) / 60 : 0; };
@@ -549,7 +552,14 @@ function dibujarResumen() {
   const conSeg = filas.some(f => num(f.seg_con_material) !== null);
   const conMaterial = conSeg ? filas.reduce((t, f) => t + (num(f.seg_con_material) || 0), 0) / 60
                              : Math.max(0, filas.length - vacio - (paro || 0));
-  const sinRegistro = Math.max(0, transcurridos - filas.length);
+  // Tiempo sin registro = minutos YA CERRADOS sin renglón (el minuto actual y el anterior todavía se
+  // están guardando/subiendo, por eso no cuentan) + segundos con la cámara sin señal (negra o congelada)
+  const limite = esHoy ? Math.max(0, transcurridos - 2) : 1440;
+  const conFila = new Set(filas.map(f => f._m));
+  let faltan = 0;
+  for (let m = 0; m < limite; m++) if (!conFila.has(m)) faltan++;
+  const sinSenal = filas.reduce((t, f) => t + (num(f.seg_sin_senal) || 0), 0) / 60;
+  const sinRegistro = faltan + sinSenal;
   const ac = acumulados(filas, leerCTD($("fecha").value));
   const total = ac.ajust[filas.length - 1], hasta = ac.ajust[idx] ?? 0;
   const f = filas[idx];
@@ -584,7 +594,7 @@ function dibujarResumen() {
     <div class="cell"><div class="k">Tiempo de paro / día</div><div class="v">${paro === null ? "—" : duracion(paro)}</div>
       <div class="nota">${paro === null ? "requiere marcas" : "07:00 a 07:00"}</div></div>
     <div class="cell"><div class="k">Tiempo sin registro</div><div class="v">${duracion(sinRegistro)}</div>
-      <div class="nota">programa apagado</div></div>`;
+      <div class="nota">${sinSenal >= 1 ? `apagado ${Math.round(faltan)} · sin señal ${Math.round(sinSenal)} min` : "programa apagado o sin señal"}</div></div>`;
 }
 
 // ---------- Tira del día (un trazo por minuto) ----------
@@ -595,6 +605,7 @@ function dibujarTira() {
   const w = c.width / (rFin - rIni);
   filas.forEach(f => {
     const m = f._m; if (m === null || m < rIni || m >= rFin) return;
+    if (estadoFila(f) === "SIN_SENAL") return;           // cámara sin señal: se ve como hueco (sin registro)
     g.fillStyle = !conMaterialFila(f) && estadoFila(f) === "PARO" ? css("--paro") : colorEstado(f.cumple);
     g.fillRect((m - rIni) * w, 0, Math.max(w - (w > 4 ? 1 : 0), 1.5 * dpr), c.height);
   });
@@ -992,6 +1003,7 @@ async function descargarExcel() {
       o["Segundos en movimiento"] = +segMov(f).toFixed(0);
       o["Segundos con material"] = n(f.seg_con_material);
       o["Segundos de paro"] = n(f.seg_paro);
+      o["Segundos sin señal de cámara"] = n(f.seg_sin_senal);
       o["Segundos en vacío"] = n(f.seg_vacio);
       o["Toneladas acumuladas (programa, desde 07:00)"] = n(f.toneladas_dia_acumuladas);
       const hay = conMaterialFila(f);
