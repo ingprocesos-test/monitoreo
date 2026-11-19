@@ -87,7 +87,7 @@ button:hover{border-color:var(--muted)}
 
 /* ---- Resumen y minuto ---- */
 .dos{display:grid;grid-template-columns:minmax(0,9fr) minmax(0,4fr);gap:8px;margin-top:6px}
-@media (min-width:1201px){#resumen{grid-template-columns:minmax(0,1.4fr) repeat(8,minmax(0,1fr))} #datos{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (min-width:1201px){#resumen{grid-template-columns:minmax(0,1.4fr) repeat(9,minmax(0,1fr))} #datos{grid-template-columns:repeat(4,minmax(0,1fr))}
   .dos .cell{padding:3px 7px} .dos .cell .k{font-size:.64rem}}
 @media (max-width:1200px){.dos{grid-template-columns:1fr}}
 .seccion{font:600 .7rem/1.2 "Barlow",sans-serif;margin:0 0 2px;color:var(--muted);letter-spacing:.1em}
@@ -331,6 +331,7 @@ const VIVO_MIN = 30;         // minutos que muestra la gráfica en vivo
 const META = 80;             // % mínimo de cumplimiento
 const MIN_SEG_MOV = 3;       // s de banda en movimiento dentro de un minuto para contarlo como banda trabajando
                              // (igual que CICLO_SEG_MOVIMIENTO del programa de Python)
+const MIN_SIN_ROCA_PARO = 5; // minutos SEGUIDOS sin rocas (sin curva) para contarlos como PARO (banda inmóvil)
 // =================================================
 
 const MALLAS = [
@@ -389,7 +390,7 @@ const conMaterialFila = f => {
 const estadoBanda = v => { const e = String(v || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_");
   return e.startsWith("PARO") ? "PARO" : e.startsWith("VAC") ? "VACIO" : e.startsWith("CON") ? "CON_MATERIAL"
        : e.startsWith("SIN") ? "SIN_SENAL" : ""; };
-const estadoFila = f => { const e = estadoBanda(f.estado_banda); if (e) return e;
+const estadoFila = f => { if (f._paroLargo) return "PARO"; const e = estadoBanda(f.estado_banda); if (e) return e;
   if (conMaterialFila(f)) return "CON_MATERIAL";
   return (num(f.seg_paro) || 0) > 0 && (num(f.seg_paro) || 0) >= (num(f.seg_vacio) || 0) ? "PARO" : "VACIO"; };
 const textoEstado = e => ({ CON_MATERIAL: "CON MATERIAL", VACIO: "VACÍO", PARO: "PARO", SIN_SENAL: "SIN SEÑAL" })[e] || "—";
@@ -399,13 +400,13 @@ const tonMinuto = f => { const tm = num(f.toneladas_minuto); if (tm !== null) re
 const tonHoraEf = f => Math.round(tonMinuto(f) * 600) / 10;
 // ---- Ciclo productivo: del primer movimiento de la banda (arranque) al último (paro) ----
 // Segundos con la banda moviéndose en un minuto (con material + vacío). Datos viejos: se estima.
-const segMov = f => { const sm = num(f.seg_movimiento); if (sm !== null) return sm;
+const segMov = f => { if (f._paroLargo) return 0; const sm = num(f.seg_movimiento); if (sm !== null) return sm;
   const v = num(f.seg_vacio) || 0, c = num(f.seg_con_material); if (c !== null) return c + v;
   return hayRocas(f) ? v + Math.max(0, 60 - (num(f.seg_paro) || 0) - v) : v; };
 function cicloDia(lista) {
   let arr = null, ult = null, paroC = 0, pend = 0, paroD = 0;
   lista.forEach(f => {
-    const p = num(f.seg_paro) || 0; paroD += p;
+    const p = segParo(f); paroD += p;
     if (segMov(f) >= MIN_SEG_MOV) {           // la banda se movió en este minuto
       if (arr === null) arr = f._m; else paroC += pend;   // paros entre arranque y paro sí cuentan
       pend = 0; paroC += p; ult = f._m;
@@ -413,6 +414,21 @@ function cicloDia(lista) {
   });
   return { arr, fin: ult === null ? null : ult + 1, ult, paroC: paroC / 60, paroD: paroD / 60 };
 }
+// ---- Paro por banda inmóvil: N minutos seguidos sin rocas (sin curva) se cuentan como PARO ----
+// Aunque la cámara detecte "movimiento" (ruido, luz), si no hay rocas tanto tiempo la banda está parada.
+function marcarParos(lista) {
+  let tramo = [];
+  const cerrar = () => { if (tramo.length >= MIN_SIN_ROCA_PARO) tramo.forEach(f => f._paroLargo = true); tramo = []; };
+  lista.forEach(f => {
+    f._paroLargo = false;
+    const e = estadoBanda(f.estado_banda);
+    if (e === "SIN_SENAL" || conMaterialFila(f)) cerrar(); else tramo.push(f);
+  });
+  cerrar();
+  return lista;
+}
+const segParo = f => f._paroLargo ? Math.max(0, 60 - (num(f.seg_sin_senal) || 0)) : (num(f.seg_paro) || 0);
+const segVacio = f => f._paroLargo ? 0 : (num(f.seg_vacio) || 0);
 // "45 s con material · 15 s paro" (solo lo que tenga dato)
 const segEstados = f => [["seg_con_material", "con material"], ["seg_vacio", "vacío"], ["seg_paro", "paro"]]
   .map(([c, t]) => num(f[c]) ? `${Math.round(num(f[c]))} s ${t}` : null).filter(Boolean).join(" · ") || "";
@@ -463,9 +479,10 @@ async function consultar(banda, pestana, consulta, conEncabezado = true) {
 async function leerDia(banda, fecha) {
   const sig = sumarDias(fecha, 1);
   const r = await consultar(banda, { gid: banda.gid }, `select * where A = '${fecha}' or A = '${sig}'`);
-  return r.filter(o => o.hora && o.fecha && jornadaDe(o.fecha, o.hora) === fecha)
+  const lista = r.filter(o => o.hora && o.fecha && jornadaDe(o.fecha, o.hora) === fecha)
     .map(o => { o._m = minJornada(o.hora); return o; })
     .sort((a, b) => a._m - b._m);
+  return marcarParos(lista);
 }
 
 // ---------- Carga y refresco ----------
@@ -541,11 +558,11 @@ function dibujarResumen() {
   if (!filas.length) { $("resumen").innerHTML = ""; return; }
   const esHoy = $("fecha").value === jornadaHoy();
   const transcurridos = esHoy ? minutoJornadaAhora() + 1 : 1440;
-  const conMarcas = filas.some(f => num(f.seg_paro) !== null || num(f.seg_vacio) !== null);
+  const conMarcas = filas.some(f => num(f.seg_paro) !== null || num(f.seg_vacio) !== null || f._paroLargo);
   let paro = null, vacio;
   if (conMarcas) {
-    paro = filas.reduce((t, f) => t + (num(f.seg_paro) || 0), 0) / 60;
-    vacio = filas.reduce((t, f) => t + (num(f.seg_vacio) || 0), 0) / 60;
+    paro = filas.reduce((t, f) => t + segParo(f), 0) / 60;
+    vacio = filas.reduce((t, f) => t + segVacio(f), 0) / 60;
   } else {
     vacio = filas.filter(f => estadoClase(f.cumple) === "SIN").length;
   }
@@ -568,6 +585,7 @@ function dibujarResumen() {
   const hArr = cic.arr === null ? "—" : hhmm(cic.arr);
   const hPar = cic.fin === null ? "—" : enMarcha ? "En marcha" : hhmm(cic.fin);
   const ciclo = cic.arr === null ? null : cic.fin - cic.arr;
+  const hm = ciclo === null || paro === null ? null : Math.max(0, ciclo - cic.paroC);   // H.M. = paro − arranque − tiempo de paro
   let notaCTD = "";
   if (ac.ultimo) {
     const j = filas.findLastIndex(g => g._m <= ac.ultimo.m);
@@ -593,6 +611,8 @@ function dibujarResumen() {
       <div class="nota">${ciclo === null ? "la banda no ha arrancado" : enMarcha ? "en marcha" : "paro − arranque"}</div></div>
     <div class="cell"><div class="k">Tiempo de paro / día</div><div class="v">${paro === null ? "—" : duracion(paro)}</div>
       <div class="nota">${paro === null ? "requiere marcas" : "07:00 a 07:00"}</div></div>
+    <div class="cell"><div class="k">H.M.</div><div class="v">${hm === null ? "—" : duracion(hm)}</div>
+      <div class="nota">horas máquina</div></div>
     <div class="cell"><div class="k">Tiempo sin registro</div><div class="v">${duracion(sinRegistro)}</div>
       <div class="nota">${sinSenal >= 1 ? `apagado ${Math.round(faltan)} · sin señal ${Math.round(sinSenal)} min` : "programa apagado o sin señal"}</div></div>`;
 }
@@ -977,6 +997,7 @@ async function descargarExcel() {
       .map(f => { f._j = jornadaDe(f.fecha, f.hora); f._m = minJornada(f.hora); return f; })
       .filter(f => f._j >= d1 && f._j <= d2);
     filasR.sort((a, b) => String(a.fecha_hora).localeCompare(String(b.fecha_hora)));
+    [...new Set(filasR.map(f => f._j))].forEach(j => marcarParos(filasR.filter(f => f._j === j)));
     // Acumulado de toneladas por día de producción (con ajustes CTD de este navegador)
     const acum = new Map();
     [...new Set(filasR.map(f => f._j))].forEach(j => {
@@ -1002,9 +1023,9 @@ async function descargarExcel() {
       MALLAS.forEach(m => { o[`% conteo ${m[1]} (${m[2]})`] = n(f["conteo_" + m[0]]); });
       o["Segundos en movimiento"] = +segMov(f).toFixed(0);
       o["Segundos con material"] = n(f.seg_con_material);
-      o["Segundos de paro"] = n(f.seg_paro);
+      o["Segundos de paro"] = f._paroLargo ? segParo(f) : n(f.seg_paro);
       o["Segundos sin señal de cámara"] = n(f.seg_sin_senal);
-      o["Segundos en vacío"] = n(f.seg_vacio);
+      o["Segundos en vacío"] = f._paroLargo ? 0 : n(f.seg_vacio);
       o["Toneladas acumuladas (programa, desde 07:00)"] = n(f.toneladas_dia_acumuladas);
       const hay = conMaterialFila(f);
       o["CaCO3 estimado por color (%)"] = hay ? n(f.caco3_pct_estimado) : null;
@@ -1025,8 +1046,8 @@ async function descargarExcel() {
       r["Minutos con registro"]++;
       if (!conMaterialFila(f)) r["Minutos sin material"]++;
       r["Minutos con material"] += num(f.seg_con_material) !== null ? (n(f.seg_con_material) || 0) / 60 : (conMaterialFila(f) ? segOperando(f) / 60 : 0);
-      r["Tiempo de paro / día (min)"] += (n(f.seg_paro) || 0) / 60;
-      r["Minutos en vacío"] += (n(f.seg_vacio) || 0) / 60;
+      r["Tiempo de paro / día (min)"] += segParo(f) / 60;
+      r["Minutos en vacío"] += segVacio(f) / 60;
       if (estadoClase(f.cumple_peso_est) === "SI") r["Minutos que cumplen (peso)"]++;
     });
     Object.values(porDia).forEach(r => {
@@ -1035,6 +1056,7 @@ async function descargarExcel() {
       r["Horario de paro"] = c.fin === null ? "" : hhmm(c.fin);
       r["Tiempo de ciclo productivo (h)"] = c.arr === null ? null : +((c.fin - c.arr) / 60).toFixed(2);
       r["Tiempo de paro dentro del ciclo (min)"] = c.arr === null ? null : +c.paroC.toFixed(1);
+      r["H.M. (h)"] = c.arr === null ? null : +((c.fin - c.arr - c.paroC) / 60).toFixed(2);
     });
     const resumen = Object.values(porDia).map(r => ({ ...r, "Toneladas": +r["Toneladas"].toFixed(1), "Toneladas ajustadas (CTD)": +r["Toneladas ajustadas (CTD)"].toFixed(1),
       "Minutos con material": +r["Minutos con material"].toFixed(1),
