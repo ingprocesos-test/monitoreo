@@ -4,155 +4,313 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Granulometría en línea</title>
+<script>
+// Escala el tablero (diseñado a 1600 × 900) para que quepa completo en la pantalla.
+// En celular vertical se acomoda en una columna; en "modo PC" o laptop se ve igual que en la computadora.
+(function () {
+  const W = 1600, H = 900;
+  window.ESCALA = 1;
+  window.escalar = function () {
+    const d = document.documentElement, w = d.clientWidth || innerWidth, h = innerHeight;
+    const on = w >= 760;
+    d.classList.toggle("escala", on);
+    const wrap = document.querySelector(".wrap");
+    if (!on) { window.ESCALA = 1; if (wrap) { wrap.style.transform = ""; wrap.style.left = ""; } document.body && (document.body.style.height = ""); return; }
+    const s = w / h >= 1.3 ? Math.min(w / W, h / H) : w / W;
+    window.ESCALA = s;
+    if (wrap) { wrap.style.transform = `scale(${s})`; wrap.style.left = Math.max(0, (w - W * s) / 2) + "px"; }
+    if (document.body) document.body.style.height = Math.ceil(H * s) + "px";
+  };
+  escalar();
+  addEventListener("resize", () => { escalar(); });
+  addEventListener("DOMContentLoaded", escalar);
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
-  --bg:#EDF0F0; --surface:#FFFFFF; --ink:#1F2A30; --muted:#5E6B72; --line:#D3D9DB;
-  --accent:#F2B705; --ok:#2E8B57; --bad:#C0392B; --warn:#C98404; --none:#B7BEC2;
-  --peso:#0B4FC4; --conteo:#2E9E44; --meta:#D62828; --paro:#4A5A63;
-  color-scheme:light; box-sizing:border-box;
+  --bg:#040A14; --bg2:#071326; --surface:#0A1830; --surface2:#0E2141; --ink:#EAF3FF; --muted:#86A0BE; --line:#1A3358;
+  --cyan:#1ED8FF; --accent:#FFC83A; --ok:#25E281; --bad:#FF4D61; --warn:#FFA62B; --none:#3C5070;
+  --peso:#2F8CFF; --conteo:#25E281; --meta:#FF4D61; --paro:#8FA3BD; --naranja:#FF8A3D; --violeta:#9B7BFF;
+  color-scheme:dark; box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --bg:#172024; --surface:#212B30; --ink:#E6EBED; --muted:#9AA7AE; --line:#34424A;
-    --accent:#F2B705; --ok:#4CB17A; --bad:#E0604F; --warn:#E3A62B; --none:#56646B;
-    --peso:#5B92F5; --conteo:#5CC46E; --meta:#FF6B5E; --paro:#8796A0; color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#172024; --surface:#212B30; --ink:#E6EBED; --muted:#9AA7AE; --line:#34424A;
-  --accent:#F2B705; --ok:#4CB17A; --bad:#E0604F; --warn:#E3A62B; --none:#56646B;
-  --peso:#5B92F5; --conteo:#5CC46E; --meta:#FF6B5E; --paro:#8796A0; color-scheme:dark;
-}
 *,*::before,*::after{box-sizing:inherit}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.4 "Barlow",system-ui,"Segoe UI",Arial,sans-serif}
-.wrap{max-width:1500px;margin:0 auto;padding:8px 12px 16px}
-select,input[type=date],button{font:inherit;font-size:.82rem;color:var(--ink);background:var(--surface);
-  border:1px solid var(--line);border-radius:5px;padding:3px 8px;line-height:1.3}
+html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
+body{margin:0;color:var(--ink);font:400 14px/1.4 "Barlow",system-ui,"Segoe UI",Arial,sans-serif;min-height:100vh;
+  background:
+    radial-gradient(1200px 500px at 15% -10%,rgba(30,140,255,.16),transparent 60%),
+    radial-gradient(900px 500px at 100% 0%,rgba(30,216,255,.10),transparent 60%),
+    linear-gradient(rgba(30,216,255,.035) 1px,transparent 1px) 0 0/100% 34px,
+    linear-gradient(90deg,rgba(30,216,255,.035) 1px,transparent 1px) 0 0/34px 100%,
+    var(--bg)}
+.wrap{max-width:1880px;margin:0 auto;padding:10px 14px 16px}
+select,input[type=date],button{font:inherit;font-size:.82rem;color:var(--ink);background:var(--surface2);
+  border:1px solid var(--line);border-radius:6px;padding:4px 9px;line-height:1.3;transition:border-color .15s,box-shadow .15s}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.8) sepia(1) hue-rotate(160deg) saturate(4)}
 button{cursor:pointer}
-button:hover{border-color:var(--muted)}
-:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+button:hover{border-color:var(--cyan);box-shadow:0 0 10px rgba(30,216,255,.25)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .hidden{display:none!important}
 .sub{color:var(--muted);font-size:.78rem;margin:0}
+.ic{width:1em;height:1em;flex:none;vertical-align:-.15em}
 
-/* ---- Autor ---- */
-.autor{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 20px;
-  background:linear-gradient(100deg,var(--ink) 55%,#2C3A42);color:#F4F6F7;border-radius:8px;
-  padding:7px 16px;border-bottom:3px solid var(--accent)}
-:root[data-theme="dark"] .autor{background:linear-gradient(100deg,#0E1417 55%,#1B262B)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .autor{background:linear-gradient(100deg,#0E1417 55%,#1B262B)}}
-.autor .sistema{font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;opacity:.7}
-.autor h1{font:700 1.35rem/1.1 "Barlow Condensed","Arial Narrow",sans-serif;margin:0}
-.autor .credito{display:flex;align-items:center;gap:12px;text-align:right}
-.autor .credito small{display:block;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
-.autor .nombre{font:700 clamp(1.25rem,2.4vw,1.75rem)/1.05 "Barlow Condensed","Arial Narrow",sans-serif;letter-spacing:.02em}
-.autor .cargo{font-size:.76rem;opacity:.85}
-.autor .sello{width:38px;height:38px;border-radius:50%;border:2px solid var(--accent);display:grid;place-items:center;
-  font:700 .95rem/1 "Barlow Condensed",sans-serif;color:var(--accent);flex:none}
-@media (max-width:600px){.autor .credito{text-align:left;flex-direction:row-reverse}}
+/* ---- Encabezado ---- */
+.autor{position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px 20px;
+  padding:10px 18px;border-radius:12px;overflow:hidden;
+  background:linear-gradient(100deg,rgba(14,33,65,.95),rgba(7,19,38,.95) 55%,rgba(14,33,65,.95));
+  border:1px solid rgba(30,216,255,.28);box-shadow:0 0 24px rgba(30,140,255,.12),inset 0 1px 0 rgba(255,255,255,.05)}
+.autor::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan) 30%,var(--accent) 50%,var(--cyan) 70%,transparent)}
+.autor::before{content:"";position:absolute;top:0;bottom:0;width:30%;left:-30%;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(30,216,255,.08),transparent);animation:barrido 9s ease-in-out infinite}
+@keyframes barrido{0%,60%{left:-30%}100%{left:110%}}
+.marca{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{width:46px;height:46px;flex:none;display:grid;place-items:center;border-radius:10px;color:var(--cyan);
+  background:radial-gradient(circle at 30% 30%,rgba(30,216,255,.25),rgba(30,216,255,.04));border:1px solid rgba(30,216,255,.45);
+  box-shadow:0 0 14px rgba(30,216,255,.3)}
+.logo svg{width:28px;height:28px}
+.autor .sistema{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);opacity:.9}
+.autor h1{font:700 1.7rem/1.05 "Barlow Condensed","Arial Narrow",sans-serif;margin:0;letter-spacing:.01em}
+.planta{display:flex;align-items:center;gap:10px;padding:6px 14px;border-radius:30px;
+  background:rgba(30,216,255,.06);border:1px solid rgba(30,216,255,.3);font-size:.82rem;color:var(--muted);white-space:nowrap}
+.planta b{color:var(--ink);font-weight:600}
+.planta .ic{width:20px;height:20px;color:var(--cyan)}
+.planta .bandera{display:inline-flex;width:24px;height:14px;border-radius:2px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.2)}
+.bandera i{flex:1}.bandera i:nth-child(1){background:#006847}.bandera i:nth-child(2){background:#fff}.bandera i:nth-child(3){background:#CE1126}
+.autor .credito{display:flex;align-items:center;justify-content:flex-end;gap:14px;text-align:right}
+.autor .credito small{display:block;font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.autor .nombre{font:700 clamp(1.3rem,2.2vw,1.9rem)/1.05 "Barlow Condensed","Arial Narrow",sans-serif;letter-spacing:.02em;
+  background:linear-gradient(180deg,#fff,#BFD6F2);-webkit-background-clip:text;background-clip:text;color:transparent}
+.autor .cargo{font-size:.78rem;color:var(--muted)}
+.autor .sello{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;flex:none;
+  font:700 1.05rem/1 "Barlow Condensed",sans-serif;color:var(--accent);
+  border:2px solid var(--accent);box-shadow:0 0 16px rgba(255,200,58,.4),inset 0 0 10px rgba(255,200,58,.25);
+  background:radial-gradient(circle,rgba(255,200,58,.12),transparent 70%)}
+@media (max-width:1000px){.autor{grid-template-columns:1fr}.planta{justify-self:start}.autor .credito{justify-content:flex-start;text-align:left;flex-direction:row-reverse}}
 
-/* ---- Barra de control y tiempo (compacta) ---- */
-.belt{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 10px 3px;margin-top:6px}
-.belt-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
-.clock{font:700 1.45rem/1 "Barlow Condensed","Arial Narrow",sans-serif;font-variant-numeric:tabular-nums;min-width:3.2em}
+/* ---- Barra de control y línea de tiempo ---- */
+.belt{position:relative;margin-top:8px;padding:7px 12px 5px;border-radius:12px;
+  background:linear-gradient(180deg,rgba(14,33,65,.9),rgba(8,20,40,.92));border:1px solid rgba(30,216,255,.22)}
+.belt-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.clock{display:flex;align-items:center;gap:6px;font:700 1.9rem/1 "Barlow Condensed","Arial Narrow",sans-serif;font-variant-numeric:tabular-nums;
+  color:var(--cyan);text-shadow:0 0 14px rgba(30,216,255,.55);min-width:3.4em}
+.clock .ic{width:20px;height:20px;opacity:.8}
 .grupo{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.vsep{width:1px;align-self:stretch;background:var(--line);margin:2px 2px}
 .belt-head .sep{flex:1}
-.live{display:none;align-items:center;gap:5px;font-weight:600;font-size:.8rem;color:var(--ok)}
+.descarga{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.descarga label{color:var(--muted);font-size:.8rem}
+.btn-prim{background:linear-gradient(180deg,#2AE88A,#14B865);color:#04170D;border-color:#2AE88A;font-weight:700}
+.btn-prim:hover{box-shadow:0 0 14px rgba(37,226,129,.5);border-color:#7CF5B5}
+.btn-prim .ic{margin-right:4px}
+.live{display:none;align-items:center;gap:7px;font-weight:700;font-size:.82rem;color:var(--ok);letter-spacing:.04em;
+  padding:3px 10px;border-radius:20px;background:rgba(37,226,129,.1);border:1px solid rgba(37,226,129,.4)}
 .live.on{display:inline-flex}
-.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok)}
-.track{position:relative;height:16px;margin:5px 0 1px}
-#strip{position:absolute;inset:2px 0;width:100%;height:12px;border-radius:2px}
-#cursor{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;background:var(--accent);border-radius:2px;pointer-events:none}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(37,226,129,.7);animation:pulso 1.8s infinite}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(37,226,129,.7)}70%{box-shadow:0 0 0 9px rgba(37,226,129,0)}100%{box-shadow:0 0 0 0 rgba(37,226,129,0)}}
+.track{position:relative;height:20px;margin:7px 0 2px}
+#strip{position:absolute;inset:3px 0;width:100%;height:14px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--line)}
+#cursor{position:absolute;top:-2px;bottom:-2px;width:3px;margin-left:-1.5px;background:var(--accent);border-radius:2px;pointer-events:none;
+  box-shadow:0 0 10px var(--accent),0 0 3px var(--accent)}
 #slider{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize}
-#slider:focus-visible + #cursor{box-shadow:0 0 0 2px var(--ink)}
+#slider:focus-visible + #cursor{box-shadow:0 0 0 2px var(--ink),0 0 12px var(--accent)}
 .pie-barra{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px}
-.hours{position:relative;height:1.2em;flex:1 1 300px;color:var(--muted);font-size:.68rem;font-variant-numeric:tabular-nums}
+.hours{position:relative;height:1.2em;flex:1 1 300px;color:var(--muted);font-size:.7rem;font-variant-numeric:tabular-nums}
 .hours span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
 .hours span:first-child{transform:none}
 .hours span:last-child{transform:translateX(-100%)}
-.legend{display:flex;flex-wrap:wrap;gap:8px;font-size:.68rem;color:var(--muted)}
-.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;vertical-align:-1px}
-
-.barra-sup{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px;margin-top:6px;
-  padding:4px 10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;font-size:.8rem}
-.descarga{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
-.descarga .titulo-desc{font-weight:600;color:var(--muted);font-size:.72rem;letter-spacing:.06em}
-.descarga label{color:var(--muted)}
-.btn-prim{background:var(--ok);color:#fff;border-color:var(--ok);font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:.7rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 
 /* ---- Resumen y minuto ---- */
-.dos{display:grid;grid-template-columns:minmax(0,9fr) minmax(0,4fr);gap:8px;margin-top:6px}
-@media (min-width:1201px){#resumen{grid-template-columns:minmax(0,1.4fr) repeat(9,minmax(0,1fr))} #datos{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .dos .cell{padding:3px 7px} .dos .cell .k{font-size:.64rem}}
+.dos{display:grid;grid-template-columns:minmax(0,9fr) minmax(0,4fr);gap:10px;margin-top:8px}
+@media (min-width:1201px){#resumen{grid-template-columns:minmax(0,1.35fr) repeat(9,minmax(0,1fr))} #datos{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (max-width:1200px){.dos{grid-template-columns:1fr}}
-.seccion{font:600 .7rem/1.2 "Barlow",sans-serif;margin:0 0 2px;color:var(--muted);letter-spacing:.1em}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:1px;background:var(--line);
-  border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seccion{display:flex;align-items:center;gap:6px;font:700 .74rem/1.2 "Barlow",sans-serif;margin:0 0 4px;color:var(--cyan);letter-spacing:.1em}
+.seccion .ic{width:14px;height:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px}
 @media (max-width:600px){.grid{grid-template-columns:1fr 1fr}.grid .cell:last-child:nth-child(odd){grid-column:1/-1}}
-.cell{background:var(--surface);padding:3px 9px}
-.cell .k{color:var(--muted);font-size:.68rem;line-height:1.2}
-.cell .v{font:600 1.1rem/1.15 "Barlow Condensed","Arial Narrow",sans-serif;font-variant-numeric:tabular-nums}
-.cell .v small{font-size:.7rem;color:var(--muted);font-weight:500}
-.cell .nota{color:var(--muted);font-size:.62rem;line-height:1.15}
+.cell{--c:var(--cyan);position:relative;padding:6px 8px 6px 40px;border-radius:9px;min-height:62px;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--c) 14%,var(--surface)),var(--surface) 65%);
+  border:1px solid color-mix(in srgb,var(--c) 45%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 0 12px color-mix(in srgb,var(--c) 10%,transparent)}
+.cell .ico{position:absolute;left:7px;top:8px;width:26px;height:26px;display:grid;place-items:center;border-radius:7px;color:var(--c);
+  background:color-mix(in srgb,var(--c) 16%,transparent);border:1px solid color-mix(in srgb,var(--c) 40%,transparent)}
+.cell .ico svg{width:16px;height:16px}
+.cell .k{color:var(--muted);font-size:.68rem;line-height:1.15;font-weight:500}
+.cell .v{font:700 clamp(1.02rem,1.15vw,1.3rem)/1.15 "Barlow Condensed","Arial Narrow",sans-serif;font-variant-numeric:tabular-nums;color:var(--ink)}
+.cell .v small{font-size:.72rem;color:var(--muted);font-weight:500}
+.cell .nota{color:var(--muted);font-size:.62rem;line-height:1.15;opacity:.85}
 .cell .fila{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.tag{display:inline-block;font-weight:600;font-size:.64rem;padding:0 5px;border-radius:3px;color:#fff}
-.t-SI{background:var(--ok)} .t-NO{background:var(--bad)} .t-POCOS{background:var(--warn)} .t-SIN{background:var(--none);color:var(--ink)}
-.t-CON_MATERIAL{background:var(--ok)} .t-VACIO{background:var(--none);color:var(--ink)} .t-PARO{background:var(--paro)}
-.t-SIN_SENAL{background:var(--surface);color:var(--ink);border:1px solid var(--muted)}
-.alert{margin-top:4px;padding:2px 10px;border-left:3px solid var(--warn);background:var(--surface);border-radius:4px;font-size:.78rem}
+.tag{display:inline-block;font-weight:700;font-size:.64rem;padding:1px 6px;border-radius:4px;color:#04101F;letter-spacing:.03em}
+.t-SI{background:var(--ok);box-shadow:0 0 8px rgba(37,226,129,.4)} .t-NO{background:var(--bad);color:#fff;box-shadow:0 0 8px rgba(255,77,97,.4)}
+.t-POCOS{background:var(--warn)} .t-SIN{background:var(--none);color:var(--ink)}
+.t-CON_MATERIAL{background:var(--ok);box-shadow:0 0 8px rgba(37,226,129,.4)} .t-VACIO{background:var(--none);color:var(--ink)} .t-PARO{background:var(--paro)}
+.t-SIN_SENAL{background:transparent;color:var(--ink);border:1px solid var(--muted)}
+.alert{margin-top:6px;padding:4px 12px;border-left:3px solid var(--warn);background:rgba(255,166,43,.08);border-radius:6px;font-size:.8rem;color:#FFD9A0}
 .alert:empty{display:none}
 
-/* ---- Tablero 3×2: video | curva en línea | curva promedio / calidad | cumplimiento día | cumplimiento en vivo ---- */
-.tablero{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:6px}
+/* ---- Tableros ---- */
+.tablero{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}
 .tablero.sin-vivo{grid-template-columns:repeat(2,minmax(0,1fr))}
-.fila3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.fila3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
 .fila3.sin-vivo{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media (max-width:1100px){.fila3,.fila3.sin-vivo,.tablero,.tablero.sin-vivo{grid-template-columns:1fr}}
-button.ctd{font:700 .62rem/1 "Barlow",sans-serif;padding:2px 6px;border-radius:3px;background:var(--ink);color:var(--surface);border-color:var(--ink);letter-spacing:.06em}
-dialog#dlgCTD{border:1px solid var(--line);border-radius:10px;padding:16px 18px;max-width:380px;width:calc(100% - 32px);background:var(--surface);color:var(--ink)}
-dialog#dlgCTD::backdrop{background:rgba(0,0,0,.45)}
+.panel{position:relative;padding:8px 12px 8px;min-width:0;border-radius:12px;
+  background:linear-gradient(180deg,rgba(14,33,65,.88),rgba(7,17,33,.94));
+  border:1px solid rgba(30,216,255,.2);box-shadow:0 0 22px rgba(20,120,255,.08),inset 0 1px 0 rgba(255,255,255,.04)}
+.panel::before,.panel::after{content:"";position:absolute;width:14px;height:14px;pointer-events:none;border-color:var(--cyan);border-style:solid;opacity:.8}
+.panel::before{top:-1px;left:-1px;border-width:2px 0 0 2px;border-top-left-radius:12px}
+.panel::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0;border-bottom-right-radius:12px}
+.panel-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2px 10px;padding-bottom:4px;margin-bottom:4px;
+  border-bottom:1px solid rgba(30,216,255,.12)}
+.panel h2{display:flex;align-items:center;gap:7px;font:700 .98rem/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:0;letter-spacing:.03em}
+.panel h2 .ic{width:17px;height:17px;color:var(--cyan)}
+.panel p{margin:0;color:var(--muted);font-size:.7rem}
+.chartbox{position:relative;height:clamp(150px,23vh,290px)}
+.estado-cumpl{display:flex;flex-wrap:wrap;gap:2px 14px;font:700 .84rem/1.2 "Barlow Condensed","Arial Narrow",sans-serif}
+.estado-cumpl .ok{color:var(--ok)} .estado-cumpl .mal{color:var(--meta)} .estado-cumpl .gris{color:var(--muted)}
+.estado-cumpl .caco3{color:var(--peso)} .estado-cumpl .mgco3{color:#E0A25A}
+button.ctd{font:700 .62rem/1 "Barlow",sans-serif;padding:3px 7px;border-radius:4px;background:rgba(255,200,58,.12);color:var(--accent);border-color:rgba(255,200,58,.5);letter-spacing:.06em}
+dialog#dlgCTD{border:1px solid rgba(30,216,255,.35);border-radius:12px;padding:18px 20px;max-width:390px;width:calc(100% - 32px);background:var(--surface);color:var(--ink);box-shadow:0 0 40px rgba(30,140,255,.25)}
+dialog#dlgCTD::backdrop{background:rgba(2,6,14,.7);backdrop-filter:blur(2px)}
 #formCTD{display:grid;gap:6px}
-#formCTD h2{font:600 1.05rem/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:0}
+#formCTD h2{font:700 1.1rem/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:0;color:var(--accent)}
 #formCTD label{font-size:.78rem;color:var(--muted);margin-top:4px}
-#formCTD input{font:inherit;font-size:.95rem;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--ink)}
+#formCTD input{font:inherit;font-size:.95rem;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--surface2);color:var(--ink)}
 .ctd-botones{display:flex;gap:6px;margin-top:8px;align-items:center}
 .ctd-botones .sep{flex:1}
-.nota-calidad{font-size:.62rem;color:var(--muted);font-style:italic}
-.tag-color{display:inline-block;font-weight:700;font-size:.66rem;padding:0 6px;border-radius:3px;color:#fff;letter-spacing:.04em}
+.nota-calidad{font-size:.64rem;color:var(--muted);font-style:italic}
+.tag-color{display:inline-block;font-weight:700;font-size:.66rem;padding:1px 7px;border-radius:4px;color:#fff;letter-spacing:.04em}
 .c-GRIS{background:#7D8A91} .c-CAFE{background:#A0703A} .c-MARRON{background:#6B3E1F} .c-OTRO{background:var(--none);color:var(--ink)}
-.estado-cumpl .caco3{color:var(--peso)} .estado-cumpl .mgco3{color:#A0703A}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;min-width:0}
-.panel-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 10px}
-.panel h2{font:600 .92rem/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:0;letter-spacing:.02em}
-.panel p{margin:0;color:var(--muted);font-size:.68rem}
-.chartbox{position:relative;height:clamp(140px,21.8vh,265px)}
-.estado-cumpl{display:flex;flex-wrap:wrap;gap:2px 14px;font:600 .82rem/1.2 "Barlow Condensed","Arial Narrow",sans-serif}
-.estado-cumpl .ok{color:var(--ok)} .estado-cumpl .mal{color:var(--meta)} .estado-cumpl .gris{color:var(--muted)}
-.vivo figure{margin:4px 0 0}
-.vivo img{display:block;width:100%;height:clamp(145px,25vh,280px);object-fit:contain;background:#000;border-radius:5px}
-.vivo figcaption{color:var(--muted);font-size:.68rem;margin-top:2px}
+.vivo .panel-head .envivo{display:inline-flex;align-items:center;gap:5px;font:700 .7rem/1 "Barlow",sans-serif;color:var(--ok);margin-left:4px}
+.vivo .panel-head .envivo::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulso 1.8s infinite}
+.vivo figure{margin:4px 0 0;position:relative}
+.vivo img{display:block;width:100%;height:clamp(150px,27vh,300px);object-fit:contain;background:#000;border-radius:8px;border:1px solid rgba(30,216,255,.2)}
+.vivo figcaption{color:var(--muted);font-size:.7rem;margin-top:3px}
 .vivo figcaption.viejo{color:var(--meta);font-weight:600}
 .foto{color:var(--muted);font-size:.66rem;overflow-wrap:anywhere}
 #contenido.solo-imagen .dos,#contenido.solo-imagen .alert,#contenido.solo-imagen .fila3,
 #contenido.solo-imagen .tablero > .panel:not(.vivo){display:none}
 #contenido.solo-imagen .tablero{grid-template-columns:minmax(0,1fr)}
 #contenido.solo-imagen .vivo img{height:clamp(240px,58vh,620px)}
-.empty{margin-top:8px;padding:20px;text-align:center;background:var(--surface);border:1px dashed var(--line);border-radius:8px}
-footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
+.empty{margin-top:8px;padding:22px;text-align:center;background:var(--surface);border:1px dashed rgba(30,216,255,.35);border-radius:12px;color:var(--muted)}
+footer{margin-top:12px;padding-top:8px;border-top:1px solid var(--line);color:var(--muted);font-size:.72rem;text-align:center}
+footer b{color:var(--accent);font-weight:600}
+
+/* Entrada al cargar: un solo momento orquestado */
+@keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.autor,.belt,.dos,.tablero>.panel,.fila3>.panel{animation:entra .6s cubic-bezier(.2,.7,.2,1) both}
+.belt{animation-delay:.08s}.dos{animation-delay:.16s}
+.tablero>.panel:nth-child(1){animation-delay:.24s}.tablero>.panel:nth-child(2){animation-delay:.3s}.tablero>.panel:nth-child(3){animation-delay:.36s}
+.fila3>.panel:nth-child(1){animation-delay:.42s}.fila3>.panel:nth-child(2){animation-delay:.48s}.fila3>.panel:nth-child(3){animation-delay:.54s}
+.autor{animation-name:entra}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 @media (max-width:600px){ .chartbox{height:230px} .vivo img{height:auto;aspect-ratio:4/3} }
+/* ---- Ajustes al diseño de referencia ---- */
+.autor{padding:8px 16px}
+@media (max-width:1000px){html:not(.escala) .camhead,html:not(.escala) .mexico{display:none}html:not(.escala) .autor{grid-template-columns:1fr}}
+.centro{display:flex;align-items:center;gap:18px}
+.camhead{width:34px;height:34px;color:var(--cyan);filter:drop-shadow(0 0 6px rgba(30,216,255,.6))}
+.mexico{display:flex;align-items:center;gap:6px;font:700 1.1rem/1 "Barlow Condensed",sans-serif;color:#9FC3E8;letter-spacing:.06em}
+.mexico svg{width:62px;height:38px}
+.mexico path{fill:rgba(30,216,255,.12);stroke:#9FC3E8;stroke-width:1.2;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(30,216,255,.7))}
+.barra-sup{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px;margin-top:6px;padding:5px 12px;
+  border-radius:10px;background:linear-gradient(180deg,rgba(14,33,65,.9),rgba(8,20,40,.92));border:1px solid rgba(30,216,255,.22)}
+.titulo-desc{display:inline-flex;align-items:center;gap:3px;font-weight:700;color:var(--muted);font-size:.72rem;letter-spacing:.08em}
+.belt{margin-top:6px}
+.clock{font-size:1.7rem;color:var(--ink);text-shadow:0 0 12px rgba(30,216,255,.45)}
+.live{background:none;border:0;padding:0;color:var(--ok)}
+.live::before{display:none}
+.live .ic{width:16px;height:16px;animation:latido 1.8s ease-in-out infinite}
+@keyframes latido{50%{opacity:.35}}
+/* tarjetas: ícono a la derecha, destacadas con color */
+.cell{padding:6px 32px 6px 9px;background:linear-gradient(180deg,var(--surface2),var(--surface));
+  border:1px solid color-mix(in srgb,var(--c) 22%,var(--line));box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.cell .ico{left:auto;right:6px;top:7px;width:24px;height:24px;background:none;border:0;opacity:.9;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--c) 60%,transparent))}
+.cell .ico svg{width:22px;height:22px}
+.cell .k{color:#C9D8EA;font-weight:600}
+.cell.dest{border:1.5px solid var(--c);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 30%,var(--surface)),color-mix(in srgb,var(--c) 10%,var(--surface)));
+  box-shadow:0 0 16px color-mix(in srgb,var(--c) 35%,transparent),inset 0 1px 0 rgba(255,255,255,.08)}
+.cell.dest .v{color:color-mix(in srgb,var(--c) 70%,#fff)}
+.cell.dest .k{color:#fff}
+/* paneles */
+.panel.destacado{border:1.5px solid rgba(30,216,255,.7);box-shadow:0 0 22px rgba(30,216,255,.28),inset 0 0 30px rgba(30,216,255,.05)}
+.estrella{color:var(--accent);text-shadow:0 0 6px rgba(255,200,58,.7);font-size:.9rem}
+.vivo .marco{position:relative;background:#000;border-radius:8px;overflow:hidden;border:1px solid rgba(30,216,255,.2)}
+.vivo .marco img{border:0;border-radius:0}
+.vivo .camimg{position:absolute;left:12px;top:12px;width:34px;height:34px;color:#B8CDE4;opacity:.9}
+.vivo .marco .envivo{position:absolute;right:12px;top:12px;display:inline-flex;align-items:center;gap:6px;font:700 .85rem/1 "Barlow Condensed",sans-serif;
+  color:var(--ok);letter-spacing:.04em;text-shadow:0 0 6px rgba(0,0,0,.8)}
+.vivo .marco .envivo::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok);animation:pulso 1.8s infinite}
+
+/* ---- Modo pantalla completa (laptop / PC / celular en "modo PC") ---- */
+html.escala,html.escala body{overflow-x:hidden}
+html.escala .wrap{position:absolute;top:0;left:0;width:1600px;height:900px;max-width:none;margin:0;padding:8px 12px 6px;
+  display:flex;flex-direction:column;transform-origin:0 0}
+html.escala #contenido{flex:1;min-height:0;display:flex;flex-direction:column}
+html.escala #contenido.hidden{display:none}
+html.escala .tablero,html.escala .fila3{flex:1;min-height:0;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:7px;gap:8px}
+html.escala .tablero.sin-vivo,html.escala .fila3.sin-vivo{grid-template-columns:repeat(2,minmax(0,1fr))}
+html.escala .panel{display:flex;flex-direction:column;min-height:0;padding:6px 10px}
+html.escala .chartbox{flex:1;height:auto;min-height:0}
+html.escala .vivo figure{flex:1;min-height:0;display:flex;flex-direction:column}
+html.escala .vivo .marco{flex:1;min-height:0}
+html.escala .vivo img{height:100%;aspect-ratio:auto}
+html.escala #contenido.solo-imagen .tablero{grid-template-columns:minmax(0,1fr)}
+html.escala #contenido.solo-imagen .vivo img{height:100%}
+html.escala .autor{grid-template-columns:1fr auto 1fr}
+html.escala .autor .credito{justify-content:flex-end;text-align:right;flex-direction:row}
+html.escala .planta{justify-self:auto}
+html.escala .dos{grid-template-columns:minmax(0,9fr) minmax(0,4fr);margin-top:6px;gap:8px}
+html.escala #resumen{grid-template-columns:minmax(0,1.3fr) repeat(9,minmax(0,1fr))}
+html.escala #datos{grid-template-columns:repeat(4,minmax(0,1fr))}
+html.escala .grid{gap:5px}
+html.escala .grid .cell:last-child:nth-child(odd){grid-column:auto}
+html.escala .cell{min-height:58px}
+html.escala .cell .v{font-size:1.12rem}
+html.escala .cell{padding-right:28px}
+html.escala .cell .ico{right:5px}
+html.escala .cell .ico svg{width:19px;height:19px}
+html.escala footer{margin-top:5px;padding-top:4px;font-size:.66rem}
+html.escala .alert{margin-top:4px}
+
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-roca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 17l3-7 5-3 6 2 4 6-2 4H5z"/><path d="M8 11l3 3 4-2 3 3"/></symbol>
+  <symbol id="i-reloj" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-6.2 7-12a7 7 0 10-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+  <symbol id="i-excel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></symbol>
+  <symbol id="i-camara" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></symbol>
+  <symbol id="i-curva" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 20h18M4 17c4-1 5-9 8-10s4 6 8 7"/></symbol>
+  <symbol id="i-prom" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 20h18M4 16l4-5 4 3 4-6 4 4"/><path d="M4 12h16" stroke-dasharray="2 2"/></symbol>
+  <symbol id="i-gota" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3s6 6.5 6 11a6 6 0 11-12 0c0-4.5 6-11 6-11z"/></symbol>
+  <symbol id="i-meta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></symbol>
+  <symbol id="i-pulso" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-6 4 12 2-6h6"/></symbol>
+  <symbol id="i-lista" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+</svg>
 <div class="wrap">
   <section class="autor" aria-label="Autor">
-    <div>
-      <div class="sistema">Sistema de monitoreo de granulometría en línea</div>
-      <h1 id="titulo">Granulometría</h1>
+    <div class="marca">
+      <div class="logo" aria-hidden="true"><svg><use href="#i-roca"/></svg></div>
+      <div>
+        <div class="sistema">Sistema de monitoreo de granulometría en línea</div>
+        <h1 id="titulo">Granulometría</h1>
+      </div>
+    </div>
+    <div class="centro">
+      <svg class="camhead" aria-hidden="true"><use href="#i-camara"/></svg>
+      <div class="planta"><svg class="ic"><use href="#i-pin"/></svg><span>Planta / Ubicación: <b>México</b></span></div>
+      <div class="mexico" aria-hidden="true">
+        <svg viewBox="0 0 100 60"><path d="M6 3l4 0 5 11 7 13-1 3-7-11-6-11zM15 3l20 2 10 6 8-2 7 3 2 9 4 11 8 6 9-3 6-5 4 5-3 6-8 2-6 0-3 4-7 3-9-1-11-5-8-6-6-9-6-11-6-6z"/></svg>
+        <span>MÉXICO</span>
+      </div>
     </div>
     <div class="credito">
       <div>
@@ -166,7 +324,7 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
 
   <div class="barra-sup">
     <section class="descarga" id="descarga" aria-label="Descargar datos en Excel">
-      <span class="titulo-desc">⬇ EXCEL</span>
+      <span class="titulo-desc"><svg class="ic"><use href="#i-excel"/></svg>EXCEL</span>
       <label for="desde">Desde</label><input type="date" id="desde">
       <label for="hasta">Hasta</label><input type="date" id="hasta">
       <button class="btn-prim" id="descargar">Descargar Excel</button>
@@ -185,7 +343,7 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
 
   <section class="belt" aria-label="Línea de tiempo del día">
     <div class="belt-head">
-      <div class="clock" id="reloj">--:--</div>
+      <div class="clock"><span id="reloj">--:--</span></div>
       <div class="grupo">
         <button id="minAnt" aria-label="Minuto anterior con datos">◀ Min</button>
         <button id="minSig" aria-label="Minuto siguiente con datos">Min ▶</button>
@@ -193,9 +351,7 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
         <button id="zoomBtn">Día completo</button>
       </div>
       <span class="sep"></span>
-      <div class="grupo">
-        <span class="live" id="live">En vivo</span>
-      </div>
+      <span class="live" id="live"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M8 8a6 6 0 000 8M16 8a6 6 0 010 8M5 5a10 10 0 000 14M19 5a10 10 0 010 14"/></svg>En vivo</span>
     </div>
     <div class="track">
       <canvas id="strip"></canvas>
@@ -223,11 +379,11 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
   <div id="contenido">
     <div class="dos">
       <div>
-        <h2 class="seccion">RESUMEN DEL DÍA</h2>
+        <h2 class="seccion"><svg class="ic"><use href="#i-lista"/></svg>RESUMEN DEL DÍA</h2>
         <div class="grid" id="resumen"></div>
       </div>
       <div>
-        <h2 class="seccion" id="tituloMinuto">MINUTO ELEGIDO</h2>
+        <h2 class="seccion"><svg class="ic"><use href="#i-reloj"/></svg><span id="tituloMinuto">MINUTO ELEGIDO</span></h2>
         <div class="grid" id="datos"></div>
       </div>
     </div>
@@ -240,24 +396,24 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
           <button id="verDetecciones" aria-pressed="false">Ver detecciones</button>
         </div>
         <figure>
-          <img id="imgVivo" alt="Imagen en vivo de la banda">
+          <div class="marco"><img id="imgVivo" alt="Imagen en vivo de la banda"><svg class="camimg" aria-hidden="true"><use href="#i-camara"/></svg><span class="envivo">EN VIVO</span></div>
           <figcaption id="imgHora">Esperando imagen…</figcaption>
         </figure>
       </section>
 
       <section class="panel" aria-label="Curva granulométrica">
         <div class="panel-head">
-          <h2>CURVA GRANULOMÉTRICA EN LÍNEA</h2>
+          <h2><svg class="ic"><use href="#i-curva"/></svg>CURVA GRANULOMÉTRICA EN LÍNEA</h2>
           <p>% retenido por malla · minuto elegido</p>
         </div>
         <div class="chartbox"><canvas id="curva"></canvas></div>
         <div class="foto" id="foto"></div>
       </section>
 
-      <section class="panel" aria-label="Curva granulométrica promedio del día">
+      <section class="panel destacado" aria-label="Curva granulométrica promedio del día">
         <div class="panel-head">
-          <h2>CURVA GRANULOMÉTRICA PROMEDIO</h2>
-          <p id="subProm">% retenido por malla · promedio del día</p>
+          <h2><svg class="ic"><use href="#i-prom"/></svg>CURVA GRANULOMÉTRICA PROMEDIO</h2>
+          <p><span class="estrella" aria-hidden="true">★</span> <span id="subProm">% retenido por malla · promedio del día</span></p>
         </div>
         <div class="chartbox"><canvas id="curvaProm"></canvas></div>
         <div class="foto" id="notaProm"></div>
@@ -268,7 +424,7 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
     <div class="fila3" id="fila3">
       <section class="panel" aria-label="Calidad estimada por color">
         <div class="panel-head">
-          <h2>CALIDAD ESTIMADA POR COLOR · DÍA</h2>
+          <h2><svg class="ic"><use href="#i-gota"/></svg>CALIDAD ESTIMADA POR COLOR · DÍA</h2>
           <div class="estado-cumpl" id="estadoCalidad"></div>
         </div>
         <p class="nota-calidad">Referencia visual por coloración, no sustituye el análisis de laboratorio</p>
@@ -277,19 +433,19 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
 
       <section class="panel" aria-label="Cumplimiento del día">
         <div class="panel-head">
-          <h2>CUMPLIMIENTO 2" A 4.5" (80 % MÍN.) · DÍA</h2>
+          <h2><svg class="ic"><use href="#i-meta"/></svg>CUMPLIMIENTO 2" A 4.5" (80 % MÍN.) · DÍA</h2>
           <div class="estado-cumpl" id="estadoCumpl"></div>
         </div>
-        <p>Puntos rojos: abajo de la meta · verdes: cumple · línea amarilla: minuto elegido</p>
+        <p>Barras: promedio por bloque de minutos · puntos rojos: abajo de la meta · verdes: cumple · línea amarilla: minuto elegido</p>
         <div class="chartbox"><canvas id="tendencia"></canvas></div>
       </section>
 
       <section class="panel hidden" id="panelVivoGraf" aria-label="Cumplimiento en vivo">
         <div class="panel-head">
-          <h2>CUMPLIMIENTO EN VIVO · ÚLTIMOS 30 MIN</h2>
+          <h2><svg class="ic"><use href="#i-pulso"/></svg>CUMPLIMIENTO EN VIVO · ÚLTIMOS 30 MIN</h2>
           <div class="estado-cumpl" id="estadoVivo"></div>
         </div>
-        <p>Un punto cada 3 s · cada punto usa los últimos 30 s</p>
+        <p>Barras: peso est. cada 30 s · línea: conteo · datos cada 3 s</p>
         <div class="chartbox"><canvas id="grafVivo"></canvas></div>
       </section>
     </div>
@@ -313,7 +469,7 @@ footer{margin-top:10px;color:var(--muted);font-size:.7rem;text-align:center}
     </form>
   </dialog>
 
-  <footer>© 2026 Ing. René Pascual Fuentes · Ingeniero Industrial · Ingeniero de Procesos · Todos los derechos reservados.</footer>
+  <footer>© 2026 <b>Ing. René Pascual Fuentes</b> · Ingeniero Industrial · Ingeniero de Procesos · Todos los derechos reservados.</footer>
 </div>
 
 <script>
@@ -341,6 +497,23 @@ const MALLAS = [
 ];
 
 const $ = id => document.getElementById(id);
+// Estilo de gráficas para tablero oscuro
+Chart.defaults.devicePixelRatio = (window.devicePixelRatio || 1) * Math.max(1, window.ESCALA || 1);
+Chart.defaults.font.family = '"Barlow", system-ui, sans-serif';
+Chart.defaults.color = "#86A0BE";
+Chart.defaults.borderColor = "#1A3358";
+Chart.defaults.plugins.tooltip.backgroundColor = "rgba(6,16,32,.95)";
+Chart.defaults.plugins.tooltip.borderColor = "rgba(30,216,255,.4)";
+Chart.defaults.plugins.tooltip.borderWidth = 1;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.pointStyleWidth = 10;
+Chart.defaults.plugins.legend.labels.boxHeight = 7;
+// Relleno degradado bajo la línea (de color a transparente)
+const rgba = (hex, a) => { const h = hex.replace("#", ""); const n = parseInt(h.length === 3 ? h.replace(/./g, "$&$&") : h, 16);
+  return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; };
+const relleno = (v, a = .45) => c => { const ch = c.chart, ar = ch.chartArea, col = v.startsWith("#") ? v : css(v);
+  if (!ar) return rgba(col, a * .5);
+  const g = ch.ctx.createLinearGradient(0, ar.top, 0, ar.bottom); g.addColorStop(0, rgba(col, a)); g.addColorStop(1, rgba(col, 0)); return g; };
 let filas = [], idx = -1, timer = null, graf1 = null, graf2 = null;
 let zoom = true, rIni = 0, rFin = 1440;   // rango visible en minutos del día
 // Los minutos de la gráfica se cuentan desde el inicio de jornada (0 = 07:00, 1439 = 06:59 del día siguiente)
@@ -594,32 +767,32 @@ function dibujarResumen() {
     notaCTD = `<div class="nota">CTD ${hhmm(ac.ultimo.m)} · calc. ${ac.crudo[filas.length - 1].toFixed(1)} t${fac ? ` · ×${fac.toFixed(3)}` : ""}</div>`;
   }
   $("resumen").innerHTML = `
-    <div class="cell"><div class="k">Toneladas del día</div>
+    <div class="cell" style="--c:var(--cyan)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16V8h10v8M13 11h4l3 3v2h-7"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg></span><div class="k">Toneladas del día</div>
       <div class="fila"><div class="v">${total.toFixed(1)}<small> t</small></div>${ac.ultimo ? '<span class="tag t-POCOS" title="Ajustado con CTD">AJ</span>' : ""}<button class="ctd" id="btnCTD" title="Calibrar toneladas del día">CTD</button></div>
       <div class="nota">a las ${f?.hora ?? "--:--"}: ${hasta.toFixed(1)} t</div>${notaCTD}</div>
-    <div class="cell"><div class="k">Horario de arranque</div><div class="v">${hArr}</div>
+    <div class="cell dest" style="--c:var(--cyan)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8l6 4-6 4z" fill="currentColor"/></svg></span><div class="k">Horario de arranque</div><div class="v">${hArr}</div>
       <div class="nota">primer movimiento</div></div>
-    <div class="cell"><div class="k">Horario de paro</div><div class="v">${hPar}</div>
+    <div class="cell" style="--c:var(--bad)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><rect x="9" y="9" width="6" height="6" fill="currentColor"/></svg></span><div class="k">Horario de paro</div><div class="v">${hPar}</div>
       <div class="nota">${enMarcha ? "últ. mov. " + hhmm(cic.fin) : "banda detenida"}</div></div>
-    <div class="cell"><div class="k">Tiempo de paro</div><div class="v">${cic.arr === null || paro === null ? "—" : duracion(cic.paroC)}</div>
+    <div class="cell dest" style="--c:var(--ok)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg></span><div class="k">Tiempo de paro</div><div class="v">${cic.arr === null || paro === null ? "—" : duracion(cic.paroC)}</div>
       <div class="nota">dentro del ciclo</div></div>
-    <div class="cell"><div class="k">Tiempo en vacío</div><div class="v">${duracion(vacio)}</div>
+    <div class="cell" style="--c:var(--paro)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15h16M6 15l2-6h8l2 6"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/></svg></span><div class="k">Tiempo en vacío</div><div class="v">${duracion(vacio)}</div>
       <div class="nota">sin roca</div></div>
-    <div class="cell"><div class="k">Tiempo con material</div><div class="v">${duracion(conMaterial)}</div>
+    <div class="cell dest" style="--c:var(--warn)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15h16"/><path d="M7 15l2-4 3 1 2-3 3 6"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/></svg></span><div class="k">Tiempo con material</div><div class="v">${duracion(conMaterial)}</div>
       <div class="nota">con roca</div></div>
-    <div class="cell"><div class="k">Tiempo de ciclo productivo</div><div class="v">${ciclo === null ? "—" : duracion(ciclo)}</div>
+    <div class="cell" style="--c:var(--cyan)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 11-3-6.2M20 4v4h-4"/></svg></span><div class="k">Tiempo de ciclo productivo</div><div class="v">${ciclo === null ? "—" : duracion(ciclo)}</div>
       <div class="nota">${ciclo === null ? "la banda no ha arrancado" : enMarcha ? "en marcha" : "paro − arranque"}</div></div>
-    <div class="cell"><div class="k">Tiempo de paro / día</div><div class="v">${paro === null ? "—" : duracion(paro)}</div>
+    <div class="cell" style="--c:var(--naranja)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></span><div class="k">Tiempo de paro / día</div><div class="v">${paro === null ? "—" : duracion(paro)}</div>
       <div class="nota">${paro === null ? "requiere marcas" : "07:00 a 07:00"}</div></div>
-    <div class="cell"><div class="k">H.M.</div><div class="v">${hm === null ? "—" : duracion(hm)}</div>
+    <div class="cell dest" style="--c:var(--paro)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></span><div class="k">H.M.</div><div class="v">${hm === null ? "—" : duracion(hm)}</div>
       <div class="nota">horas máquina</div></div>
-    <div class="cell"><div class="k">Tiempo sin registro</div><div class="v">${duracion(sinRegistro)}</div>
+    <div class="cell" style="--c:var(--paro)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0120 0M5 12.5a10 10 0 0114 0M8.5 16a5 5 0 017 0"/><path d="M3 3l18 18"/></svg></span><div class="k">Tiempo sin registro</div><div class="v">${duracion(sinRegistro)}</div>
       <div class="nota">${sinSenal >= 1 ? `apagado ${Math.round(faltan)} · sin señal ${Math.round(sinSenal)} min` : "programa apagado o sin señal"}</div></div>`;
 }
 
 // ---------- Tira del día (un trazo por minuto) ----------
 function dibujarTira() {
-  const c = $("strip"), dpr = window.devicePixelRatio || 1;
+  const c = $("strip"), dpr = (window.devicePixelRatio || 1) * Math.max(1, window.ESCALA || 1);
   c.width = c.clientWidth * dpr; c.height = c.clientHeight * dpr;
   const g = c.getContext("2d"); g.clearRect(0, 0, c.width, c.height);
   const w = c.width / (rFin - rIni);
@@ -643,11 +816,11 @@ function seleccionar(i) {
   const tag = s => `<span class="tag t-${estadoClase(s)}">${s || "—"}</span>`;
   const val = (v, u) => num(v) === null ? "—" : `${num(v)}<small> ${u}</small>`;
   $("datos").innerHTML = `
-    <div class="cell"><div class="k">Cumplimiento por peso estimado</div><div class="fila"><div class="v">${val(f.cumplimiento_peso_est_pct, "%")}</div>${tag(f.cumple_peso_est)}</div></div>
-    <div class="cell"><div class="k">Cumplimiento por conteo</div><div class="fila"><div class="v">${val(f.cumplimiento_conteo_pct, "%")}</div>${tag(f.cumple_conteo)}</div></div>
-    <div class="cell"><div class="k">Toneladas por hora</div><div class="v">${val(tonHoraEf(f), "t/h")}</div>
+    <div class="cell" style="--c:var(--peso)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l2 12H4z"/><path d="M9 8a3 3 0 016 0"/></svg></span><div class="k">Cumplimiento por peso estimado</div><div class="fila"><div class="v">${val(f.cumplimiento_peso_est_pct, "%")}</div>${tag(f.cumple_peso_est)}</div></div>
+    <div class="cell" style="--c:var(--conteo)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h3M5 12h3M5 18h3M11 6h8M11 12h8M11 18h8"/></svg></span><div class="k">Cumplimiento por conteo</div><div class="fila"><div class="v">${val(f.cumplimiento_conteo_pct, "%")}</div>${tag(f.cumple_conteo)}</div></div>
+    <div class="cell" style="--c:var(--cyan)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17a8 8 0 1116 0"/><path d="M12 17l4-5"/></svg></span><div class="k">Toneladas por hora</div><div class="v">${val(tonHoraEf(f), "t/h")}</div>
       <div class="nota">${tonMinuto(f).toFixed(2)} t/min</div></div>
-    <div class="cell"><div class="k">Estado de la banda</div><div class="fila">${tagEstado(estadoFila(f))}</div>
+    <div class="cell" style="--c:var(--ok)"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="6" rx="3"/><circle cx="7" cy="12" r="1.2" fill="currentColor"/><circle cx="17" cy="12" r="1.2" fill="currentColor"/></svg></span><div class="k">Estado de la banda</div><div class="fila">${tagEstado(estadoFila(f))}</div>
       <div class="nota">${segEstados(f)}</div></div>`;
   $("alerta").textContent = f.alerta ? "Alerta: " + f.alerta : "";
   $("foto").textContent = f.foto ? "Foto de este minuto (en la PC de planta): " + f.foto : "";
@@ -728,9 +901,9 @@ function dibujarCurvaEn(lienzo, graf, f) {
     labels: MALLAS.map(m => innerWidth < 600 ? m[1] : [m[1], mmCorto(m[2])]),
     datasets: [
       { label: "% PESO (ESTIMADO)", data: MALLAS.map(m => num(f["peso_est_" + m[0]])),
-        borderColor: css("--peso"), backgroundColor: css("--peso"), borderWidth: 4, pointRadius: 3, tension: 0 },
+        borderColor: css("--peso"), backgroundColor: relleno("--peso", .55), pointBackgroundColor: css("--peso"), fill: "origin", borderWidth: 3, pointRadius: 3, tension: .3 },
       { label: "% CONTEO", data: MALLAS.map(m => num(f["conteo_" + m[0]])),
-        borderColor: css("--conteo"), backgroundColor: css("--conteo"), borderWidth: 1.5, pointRadius: 3, pointStyle: "crossRot", tension: 0 },
+        borderColor: css("--conteo"), backgroundColor: relleno("--conteo", .35), pointBackgroundColor: css("--conteo"), fill: "origin", borderWidth: 2, pointRadius: 3, pointStyle: "crossRot", tension: .3 },
     ]
   };
   if (graf) { graf.data = datos; graf.update("none"); return graf; }
@@ -738,8 +911,8 @@ function dibujarCurvaEn(lienzo, graf, f) {
     type: "line", data: datos, plugins: [etiquetasCurva],
     options: { responsive: true, maintainAspectRatio: false, animation: false,
       layout: { padding: { top: 14, right: 14 } },
-      scales: { y: { min: 0, max: 100, ticks: { color: css("--muted"), stepSize: 25, callback: v => v + "%" }, grid: { color: css("--line") } },
-                x: { ticks: { color: css("--muted"), font: { size: 10 }, maxRotation: 0, autoSkip: false }, grid: { display: false },
+      scales: { y: { min: 0, max: 100, ticks: { color: css("--muted"), stepSize: 25, callback: v => v + "%" }, grid: { color: lienzo === "curvaProm" ? "rgba(30,216,255,.28)" : css("--line") } },
+                x: { ticks: { color: css("--muted"), font: { size: 10 }, maxRotation: 0, autoSkip: false }, grid: { display: lienzo === "curvaProm", color: "rgba(30,216,255,.2)" },
                      title: { display: innerWidth >= 600, text: "malla · abertura en mm", color: css("--muted"), font: { size: 10 }, padding: 0 } } },
       plugins: { legend: { position: "top", labels: { color: css("--ink"), boxHeight: 3 } },
                  tooltip: { callbacks: { title: it => it.length ? it[0].label.replace(",", " · ") : "",
@@ -761,7 +934,7 @@ const lineas = {
       ctx.restore(); return;
     }
     const ym = y.getPixelForValue(META);
-    ctx.strokeStyle = css("--ink"); ctx.setLineDash([6, 5]); ctx.lineWidth = 1;
+    ctx.strokeStyle = css("--meta"); ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(a.left, ym); ctx.lineTo(a.right, ym); ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = css("--meta"); ctx.font = '600 12px "Barlow", system-ui, sans-serif'; ctx.textAlign = "left";
@@ -786,28 +959,41 @@ function serie(campo, filtro) {
   return out;
 }
 
+// Agrupa los minutos en bloques para dibujar barras legibles (promedio de cada bloque)
+function bloques(campo, tam) {
+  const g = new Map();
+  filas.forEach(f => { const v = num(f[campo]); if (v === null || !conMaterialFila(f)) return;
+    const b = Math.floor(f._m / tam) * tam; const o = g.get(b) || { s: 0, n: 0 }; o.s += v; o.n++; g.set(b, o); });
+  return [...g.entries()].sort((a, b) => a[0] - b[0]).map(([b, o]) => ({ x: b + tam / 2, y: Math.round(o.s / o.n * 10) / 10 }));
+}
 function dibujarTendencia() {
+  const tam = Math.max(5, Math.round((rFin - rIni) / 72 / 5) * 5);   // ~70 barras en el rango visible
+  const peso = bloques("cumplimiento_peso_est_pct", tam), conteo = bloques("cumplimiento_conteo_pct", tam);
+  const colMeta = c => (c.raw?.y ?? 0) >= META ? css("--ok") : css("--meta");
   const datos = {
     datasets: [
-      { label: "peso", data: serie("cumplimiento_peso_est_pct"), borderColor: css("--peso"), backgroundColor: css("--peso"), borderWidth: 3, spanGaps: false,
-        pointRadius: filas.length > 300 ? 1.5 : 3, pointHoverRadius: 5,
-        pointBackgroundColor: c => (c.raw?.y ?? 0) >= META ? css("--ok") : css("--meta"),
-        pointBorderColor: c => (c.raw?.y ?? 0) >= META ? css("--ok") : css("--meta") },
-      { label: "conteo", data: serie("cumplimiento_conteo_pct"), borderColor: css("--conteo"), backgroundColor: css("--conteo"), pointRadius: 0, borderWidth: 1.5, spanGaps: false },
+      { type: "line", label: "_cumple", data: peso, showLine: false, pointRadius: 2.6, pointHoverRadius: 5,
+        pointBackgroundColor: colMeta, pointBorderColor: colMeta, order: 0 },
+      { type: "bar", label: "peso", data: peso, backgroundColor: relleno("--peso", .95), borderColor: css("--peso"), borderWidth: { top: 1.5 },
+        barPercentage: .9, categoryPercentage: .85, order: 1 },
+      { type: "bar", label: "conteo", data: conteo, backgroundColor: relleno("--conteo", .9), borderColor: css("--conteo"), borderWidth: { top: 1.5 },
+        barPercentage: .9, categoryPercentage: .85, order: 2 },
     ]
   };
-  const ejeX = { type: "linear", min: rIni, max: rFin,
+  const ejeX = { type: "linear", min: rIni, max: rFin, offset: false,
     ticks: { color: css("--muted"), stepSize: pasoHoras() * 60, maxRotation: 0, callback: v => hhmm(v) }, grid: { display: false } };
   if (graf2) { graf2.data = datos; graf2.options.scales.x = ejeX; graf2.update("none"); return; }
   graf2 = new Chart($("tendencia"), {
-    type: "line", data: datos, plugins: [lineas],
+    type: "bar", data: datos, plugins: [lineas],
     options: { responsive: true, maintainAspectRatio: false, animation: false,
       interaction: { mode: "nearest", axis: "x", intersect: false },
       onClick: (e, els) => { if (els.length) seleccionar(cercano(graf2.data.datasets[els[0].datasetIndex].data[els[0].index].x)); },
       scales: { y: { min: 0, max: 100, ticks: { color: css("--muted"), callback: v => v + " %" }, grid: { color: css("--line") } },
                 x: ejeX },
-      plugins: { legend: { labels: { color: css("--ink") } },
-                 tooltip: { callbacks: { title: it => it.length ? hhmm(it[0].parsed.x) : "" } } } }
+      plugins: { legend: { labels: { color: css("--ink"), filter: it => !it.text.startsWith("_") } },
+                 tooltip: { filter: it => !it.dataset.label.startsWith("_"),
+                   callbacks: { title: it => it.length ? `${hhmm(it[0].parsed.x - tam / 2)} a ${hhmm(it[0].parsed.x + tam / 2)}` : "",
+                                label: c => `${c.dataset.label}: ${c.parsed.y} %` } } } }
   });
 }
 
@@ -830,8 +1016,8 @@ function estadoCalidad(f) {
 
 function dibujarCalidad() {
   const datos = { datasets: [
-    { label: "CaCO₃ %", data: serie("caco3_pct_estimado", conMaterialFila), yAxisID: "y", borderColor: css("--peso"), backgroundColor: css("--peso"), borderWidth: 2.5, pointRadius: 0, spanGaps: false },
-    { label: "MgCO₃ %", data: serie("mgco3_pct_estimado", conMaterialFila), yAxisID: "y2", borderColor: "#A0703A", backgroundColor: "#A0703A", borderWidth: 2, pointRadius: 0, spanGaps: false },
+    { label: "CaCO₃ %", data: serie("caco3_pct_estimado", conMaterialFila), yAxisID: "y", borderColor: css("--peso"), backgroundColor: relleno("--peso", .4), fill: "start", borderWidth: 2.5, pointRadius: 0, spanGaps: false },
+    { label: "MgCO₃ %", data: serie("mgco3_pct_estimado", conMaterialFila), yAxisID: "y2", borderColor: "#E0A25A", backgroundColor: "#E0A25A", borderWidth: 2, pointRadius: 0, spanGaps: false },
   ] };
   const ejeX = { type: "linear", min: rIni, max: rFin,
     ticks: { color: css("--muted"), stepSize: pasoHoras() * 60, maxRotation: 0, callback: v => hhmm(v) }, grid: { display: false } };
@@ -844,8 +1030,8 @@ function dibujarCalidad() {
       scales: {
         y: { position: "left", min: 86, max: 95, ticks: { color: css("--peso"), callback: v => v + " %" }, grid: { color: css("--line") },
              title: { display: true, text: "CaCO₃", color: css("--peso") } },
-        y2: { position: "right", min: 0, max: 8, ticks: { color: "#A0703A", callback: v => v + " %" }, grid: { display: false },
-              title: { display: true, text: "MgCO₃", color: "#A0703A" } },
+        y2: { position: "right", min: 0, max: 8, ticks: { color: "#E0A25A", callback: v => v + " %" }, grid: { display: false },
+              title: { display: true, text: "MgCO₃", color: "#E0A25A" } },
         x: ejeX },
       plugins: { legend: { labels: { color: css("--ink") } },
                  tooltip: { callbacks: { title: it => it.length ? hhmm(it[0].parsed.x) : "", label: c => `${c.dataset.label.replace(" %", "")}: ${c.parsed.y ?? "—"} %` } } } }
@@ -920,13 +1106,19 @@ async function cargarVivo() {
     const conHuecos = campo => { const out = []; let prev = null;
       vis.forEach(x => { if (prev !== null && x.s - prev > 15000) out.push({ x: prev + 1, y: null }); out.push({ x: x.s, y: x[campo] }); prev = x.s; });
       return out; };
+    const B = 30000, grp = new Map();
+    vis.forEach(x => { const k = Math.floor(x.s / B) * B; const o = grp.get(k) || { p: 0, np: 0, c: 0, nc: 0 };
+      if (x.p !== null) { o.p += x.p; o.np++; } if (x.c !== null) { o.c += x.c; o.nc++; } grp.set(k, o); });
+    const cub = [...grp.entries()].sort((a, b) => a[0] - b[0]);
     const datos = { datasets: [
-      { label: "peso", data: conHuecos("p"), borderColor: css("--peso"), backgroundColor: css("--peso"), borderWidth: 3, pointRadius: 0, spanGaps: false },
-      { label: "conteo", data: conHuecos("c"), borderColor: css("--conteo"), backgroundColor: css("--conteo"), borderWidth: 1.5, pointRadius: 0, spanGaps: false } ] };
+      { type: "line", label: "conteo", data: cub.map(([k, o]) => ({ x: k + B / 2, y: o.nc ? o.c / o.nc : null })), borderColor: css("--conteo"),
+        backgroundColor: css("--conteo"), borderWidth: 2, pointRadius: 0, tension: .35, spanGaps: false, order: 0 },
+      { type: "bar", label: "peso", data: cub.map(([k, o]) => ({ x: k + B / 2, y: o.np ? o.p / o.np : null })),
+        backgroundColor: relleno("--peso", .95), borderColor: css("--peso"), borderWidth: { top: 1.5 }, barPercentage: .8, categoryPercentage: 1, order: 1 } ] };
     const ejeX = { type: "linear", min: ini, max: fin, ticks: { color: css("--muted"), stepSize: 300000, maxRotation: 0, callback: v => hm(v) }, grid: { display: false } };
     if (grafVivo) { grafVivo.data = datos; grafVivo.options.scales.x = ejeX; grafVivo.update("none"); return; }
     grafVivo = new Chart($("grafVivo"), {
-      type: "line", data: datos, plugins: [lineas],
+      type: "bar", data: datos, plugins: [lineas],
       options: { responsive: true, maintainAspectRatio: false, animation: false,
         interaction: { mode: "nearest", axis: "x", intersect: false },
         scales: { y: { min: 0, max: 100, ticks: { color: css("--muted"), callback: v => v + " %" }, grid: { color: css("--line") } }, x: ejeX },
