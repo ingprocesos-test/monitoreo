@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panadería La Concha Rosa · Simulador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fondo:#FFF1F5; --papel:#FFFFFF; --rosa:#D6336C; --rosa-suave:#FFD6E3;
+  --cacao:#5B3A29; --texto:#3D2A22; --tenue:#8A6F66; --vainilla:#FFE9B8;
+  --menta:#1F8A7A; --borde:#F3C3D3; --mp:#0A6FD6; --mp-suave:#E7F1FC;
+  --sombra:0 6px 18px rgba(214,51,108,.14);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --fondo:#22161B; --papel:#2E1F25; --rosa:#FF6F9E; --rosa-suave:#4A2633;
+    --cacao:#F2D2BF; --texto:#F6E7EC; --tenue:#C9AFB7; --vainilla:#5A4320;
+    --menta:#4FD1BC; --borde:#5A3443; --mp:#5AA9FF; --mp-suave:#1C2B3D;
+    --sombra:0 6px 18px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--fondo);color:var(--texto);font-family:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5}
+h1,h2,h3{font-family:"Fraunces",Georgia,"Times New Roman",serif;color:var(--cacao);margin:0 0 .4em;line-height:1.15}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--rosa);outline-offset:2px}
+.oculto{display:none!important}
+.envoltura{max-width:1080px;margin:0 auto;padding:0 18px}
+
+/* Papel picado */
+.papel-picado{display:block;width:100%;height:46px}
+
+header.cabeza{padding:10px 0 24px}
+.barra{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-family:"Fraunces",Georgia,serif;font-weight:800;font-size:1.35rem;color:var(--rosa)}
+.botones-barra{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--rosa);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-sec{background:transparent;color:var(--rosa);border:2px solid var(--rosa)}
+.btn-chico{padding:6px 12px;font-size:.9rem}
+.insignia{display:inline-block;min-width:20px;padding:0 6px;border-radius:999px;background:var(--menta);color:#fff;font-size:.78rem;margin-left:4px}
+
+.portada{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:center;margin-top:18px}
+.portada h1{font-size:clamp(2rem,5vw,3.3rem)}
+.portada p{color:var(--tenue);max-width:44ch;font-size:1.08rem}
+.portada-arte{background:var(--rosa-suave);border-radius:40% 60% 55% 45%/50% 45% 55% 50%;aspect-ratio:1.2;display:grid;place-items:center}
+.portada-arte svg{width:78%;height:auto}
+
+/* Fecha */
+.fechas{margin:28px 0 8px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px}
+.chip{flex:0 0 auto;border:2px solid var(--borde);background:var(--papel);color:var(--texto);border-radius:14px;padding:8px 14px;font-weight:700;text-align:left}
+.chip small{display:block;font-weight:600;color:var(--tenue)}
+.chip[aria-pressed="true"]{border-color:var(--rosa);background:var(--rosa);color:#fff}
+.chip[aria-pressed="true"] small{color:#ffe3ec}
+.aviso{background:var(--vainilla);border-radius:12px;padding:10px 14px;margin:6px 0 0;font-weight:600}
+
+/* Catálogo */
+.diseño{display:grid;grid-template-columns:1fr 320px;gap:22px;align-items:start;margin:18px 0 40px}
+.catalogo{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.pan{background:var(--papel);border-radius:22px;padding:14px;box-shadow:var(--sombra);display:flex;flex-direction:column}
+.pan-arte{background:var(--rosa-suave);border-radius:16px;display:grid;place-items:center;height:130px}
+.pan-arte svg{height:100px;width:auto}
+.pan h3{font-size:1.2rem;margin:10px 0 2px}
+.pan p{margin:0;color:var(--tenue);font-size:.92rem;flex:1}
+.pan-pie{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.precio{font-weight:800;font-size:1.15rem;color:var(--rosa)}
+.quedan{font-size:.85rem;color:var(--menta);font-weight:700}
+.quedan.pocas{color:var(--rosa)}
+.contador{display:flex;align-items:center;gap:6px;margin-top:8px}
+.contador button{width:34px;height:34px;border-radius:50%;border:2px solid var(--rosa);background:transparent;color:var(--rosa);font-weight:800;font-size:1.1rem}
+.contador span{min-width:26px;text-align:center;font-weight:800}
+
+/* Carrito */
+.carrito{background:var(--papel);border-radius:22px;padding:18px;box-shadow:var(--sombra);position:sticky;top:12px}
+.carrito ul{list-style:none;padding:0;margin:8px 0}
+.carrito li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed var(--borde)}
+.total{display:flex;justify-content:space-between;font-weight:800;font-size:1.2rem;margin:10px 0}
+.campo{display:block;margin:8px 0}
+.campo span{display:block;font-size:.9rem;font-weight:700;color:var(--tenue)}
+.campo input,.campo select{width:100%;padding:9px 12px;border-radius:12px;border:2px solid var(--borde);background:var(--fondo);color:var(--texto);font:inherit}
+.vacio{color:var(--tenue);font-style:italic}
+
+/* Pago simulado */
+.pago{max-width:480px;margin:30px auto;background:var(--papel);border-radius:18px;box-shadow:var(--sombra);overflow:hidden}
+.pago-cabeza{background:var(--mp);color:#fff;padding:16px 20px;font-weight:800}
+.pago-cuerpo{padding:20px}
+.metodo{display:flex;align-items:center;gap:10px;border:2px solid var(--borde);border-radius:12px;padding:12px;margin:8px 0}
+.metodo input{accent-color:var(--mp)}
+.btn-mp{background:var(--mp);width:100%;margin-top:12px}
+.nota-sim{background:var(--mp-suave);border-radius:10px;padding:10px;font-size:.9rem}
+
+/* Confirmación */
+.ticket{max-width:440px;margin:30px auto;background:var(--papel);border-radius:18px;padding:24px;box-shadow:var(--sombra);text-align:center}
+.ticket .folio{font-family:"Fraunces",Georgia,serif;font-size:2rem;color:var(--rosa);margin:4px 0}
+.ticket table{width:100%;text-align:left;margin:12px 0;border-collapse:collapse}
+.ticket td{padding:4px 0;border-bottom:1px dashed var(--borde)}
+
+/* Panel */
+.panel{margin:20px 0 40px}
+.pestañas{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 16px}
+.pestaña{border:2px solid var(--borde);background:var(--papel);color:var(--texto);border-radius:999px;padding:8px 16px;font-weight:800}
+.pestaña[aria-selected="true"]{background:var(--cacao);border-color:var(--cacao);color:var(--fondo)}
+.tarjeta{background:var(--papel);border-radius:18px;padding:18px;box-shadow:var(--sombra);margin-bottom:16px}
+.tabla-scroll{overflow-x:auto}
+table.datos{width:100%;border-collapse:collapse;min-width:520px}
+table.datos th,table.datos td{padding:8px 10px;border-bottom:1px solid var(--borde);text-align:left;vertical-align:middle}
+table.datos th{color:var(--tenue);font-size:.88rem}
+table.datos input[type=number],table.datos input[type=time]{width:96px;padding:6px 8px;border-radius:10px;border:2px solid var(--borde);background:var(--fondo);color:var(--texto);font:inherit}
+.resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.cifra{background:var(--rosa-suave);border-radius:16px;padding:14px}
+.cifra b{display:block;font-family:"Fraunces",Georgia,serif;font-size:1.7rem;color:var(--cacao)}
+.estado{border-radius:999px;padding:2px 10px;font-size:.82rem;font-weight:800;background:var(--vainilla)}
+.estado.entregado{background:var(--menta);color:#fff}
+.login{max-width:360px;margin:40px auto}
+
+/* Cartel QR */
+.cartel{max-width:380px;margin:30px auto;background:var(--rosa);color:#fff;border-radius:26px;padding:26px;text-align:center}
+.cartel h2{color:#fff;font-size:2rem}
+.cartel .qr{background:#fff;border-radius:16px;padding:14px;display:inline-block;margin:12px 0}
+
+/* Notificación */
+.toast{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:340px;background:var(--cacao);color:var(--fondo);padding:14px 16px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);transform:translateY(140%);transition:transform .35s ease;z-index:20}
+.toast.ver{transform:translateY(0)}
+@media (prefers-reduced-motion: reduce){.toast{transition:none}}
+
+footer{color:var(--tenue);text-align:center;font-size:.85rem;padding:20px 0 40px}
+
+@media (max-width:820px){
+  .portada{grid-template-columns:1fr}
+  .portada-arte{max-width:320px;margin:0 auto}
+  .diseño{grid-template-columns:1fr}
+  .carrito{position:static}
+}
+</style>
+</head>
+<body>
+
+<svg class="papel-picado" viewBox="0 0 600 46" preserveAspectRatio="none" aria-hidden="true">
+  <g id="banderas"></g>
+</svg>
+
+<div class="envoltura">
+  <header class="cabeza">
+    <div class="barra">
+      <div class="logo">
+        <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><path d="M4 26c0-10 7-16 16-16s16 6 16 16z" fill="#F7A8C4"/><path d="M8 25c2-6 6-10 12-11M20 14c6 1 10 5 12 11M14 25c1-5 3-8 6-9M26 25c-1-5-3-8-6-9" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="4" y="25" width="32" height="6" rx="3" fill="#E9B67A"/></svg>
+        La Concha Rosa
+      </div>
+      <div class="botones-barra">
+        <button class="btn btn-sec btn-chico" data-ir="tienda">Tienda</button>
+        <button class="btn btn-sec btn-chico" data-ir="cartel">Cartel QR</button>
+        <button class="btn btn-chico" id="btnPanel">Panel del dueño<span id="insignia" class="insignia oculto">0</span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- TIENDA -->
+  <main id="vista-tienda">
+    <section class="portada">
+      <div>
+        <h1>Pan dulce recién horneado, apartado desde tu celular</h1>
+        <p>Elige el día, escoge tus piezas y paga en línea. Cuando llegues al local, tu pan ya te está esperando.</p>
+      </div>
+      <div class="portada-arte" id="arteGrande" aria-hidden="true"></div>
+    </section>
+
+    <section class="fechas">
+      <h2>¿Para qué día lo quieres?</h2>
+      <div class="chips" id="chips" role="group" aria-label="Fechas disponibles"></div>
+      <p class="aviso" id="avisoHorario"></p>
+    </section>
+
+    <div class="diseño">
+      <section>
+        <h2>Nuestro pan</h2>
+        <div class="catalogo" id="catalogo"></div>
+      </section>
+      <aside class="carrito" aria-label="Tu pedido">
+        <h2>Tu pedido</h2>
+        <p id="fechaPedido" class="vacio"></p>
+        <ul id="listaCarrito"></ul>
+        <div class="total"><span>Total</span><span id="total">$0</span></div>
+        <label class="campo"><span>Tu nombre</span><input id="nombre" autocomplete="name" placeholder="Ej. Ana López"></label>
+        <label class="campo"><span>Teléfono</span><input id="telefono" inputmode="tel" autocomplete="tel" placeholder="10 dígitos"></label>
+        <button class="btn" id="btnPagar" style="width:100%">Pagar</button>
+        <p id="errorCarrito" class="aviso oculto" role="alert"></p>
+      </aside>
+    </div>
+  </main>
+
+  <!-- PAGO SIMULADO -->
+  <main id="vista-pago" class="oculto">
+    <div class="pago">
+      <div class="pago-cabeza">Mercado Pago · pantalla simulada</div>
+      <div class="pago-cuerpo">
+        <p class="nota-sim">Esto es una simulación. No se cobra nada ni se piden datos reales. En la versión real, esta pantalla la muestra Mercado Pago.</p>
+        <p>Pagas a <b>La Concha Rosa</b></p>
+        <div class="total"><span>Total a pagar</span><span id="totalPago">$0</span></div>
+        <label class="metodo"><input type="radio" name="metodo" value="Tarjeta de débito" checked> Tarjeta de débito</label>
+        <label class="metodo"><input type="radio" name="metodo" value="Tarjeta de crédito"> Tarjeta de crédito</label>
+        <label class="metodo"><input type="radio" name="metodo" value="Saldo en Mercado Pago"> Saldo en Mercado Pago</label>
+        <button class="btn btn-mp" id="btnConfirmarPago">Pagar</button>
+        <button class="btn btn-sec" id="btnCancelarPago" style="width:100%;margin-top:8px">Volver a la tienda</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- CONFIRMACIÓN -->
+  <main id="vista-ok" class="oculto">
+    <div class="ticket" id="ticket"></div>
+  </main>
+
+  <!-- CARTEL QR -->
+  <main id="vista-cartel" class="oculto">
+    <div class="cartel">
+      <h2>¡Aparta tu pan!</h2>
+      <p>Escanea con la cámara de tu celular, elige tus piezas y paga en línea.</p>
+      <div class="qr" id="qr" aria-label="Código QR de ejemplo"></div>
+      <p><b>La Concha Rosa</b><br>Abrimos de 5:00 a 9:00 p. m.</p>
+    </div>
+    <p style="text-align:center;color:var(--tenue)">Este QR es decorativo. El real se genera con el enlace de tu página de GitHub.</p>
+  </main>
+
+  <!-- LOGIN -->
+  <main id="vista-login" class="oculto">
+    <div class="tarjeta login">
+      <h2>Entrar al panel</h2>
+      <p style="color:var(--tenue)">Para la prueba: usuario <b>admin</b>, contraseña <b>1234</b>.</p>
+      <label class="campo"><span>Usuario</span><input id="usuario" autocomplete="username"></label>
+      <label class="campo"><span>Contraseña</span><input id="clave" type="password" autocomplete="current-password"></label>
+      <button class="btn" id="btnEntrar" style="width:100%">Entrar</button>
+      <p id="errorLogin" class="aviso oculto" role="alert">Usuario o contraseña incorrectos.</p>
+    </div>
+  </main>
+
+  <!-- PANEL -->
+  <main id="vista-panel" class="oculto panel">
+    <div class="barra">
+      <h1>Panel del dueño</h1>
+      <button class="btn btn-sec btn-chico" id="btnSalir">Cerrar sesión</button>
+    </div>
+    <div class="pestañas" role="tablist">
+      <button class="pestaña" role="tab" data-pest="resumen" aria-selected="true">Resumen</button>
+      <button class="pestaña" role="tab" data-pest="calendario" aria-selected="false">Días que abro</button>
+      <button class="pestaña" role="tab" data-pest="inventario" aria-selected="false">Piezas por día</button>
+      <button class="pestaña" role="tab" data-pest="produccion" aria-selected="false">Qué hornear</button>
+      <button class="pestaña" role="tab" data-pest="pedidos" aria-selected="false">Pedidos</button>
+    </div>
+    <div id="contenidoPanel"></div>
+  </main>
+
+  <footer>Simulador de demostración · Todo lo que guardes se queda solo en este navegador.</footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- Dibujos de pan ---------- */
+const SVG = {
+  concha:`<svg viewBox="0 0 120 90"><path d="M10 62c0-28 22-46 50-46s50 18 50 46z" fill="#F7A8C4"/><path d="M22 60c4-18 18-30 38-32M60 28c20 2 34 14 38 32M38 60c2-14 10-22 22-24M82 60c-2-14-10-22-22-24M60 36v24" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="8" y="60" width="104" height="14" rx="7" fill="#E9B67A"/></svg>`,
+  cocol:`<svg viewBox="0 0 120 90"><path d="M8 45 60 14l52 31-52 31z" fill="#B07642"/><g fill="#F5E6C8"><circle cx="40" cy="40" r="2.5"/><circle cx="55" cy="32" r="2.5"/><circle cx="70" cy="44" r="2.5"/><circle cx="52" cy="52" r="2.5"/><circle cx="82" cy="40" r="2.5"/><circle cx="62" cy="62" r="2.5"/><circle cx="34" cy="50" r="2.5"/></g></svg>`,
+  anillo:`<svg viewBox="0 0 120 90"><ellipse cx="60" cy="48" rx="46" ry="32" fill="#E3A35E"/><ellipse cx="60" cy="48" rx="16" ry="10" fill="var(--rosa-suave)"/><path d="M24 40c8-14 22-20 36-20s28 6 36 20" stroke="#FFF3D6" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="2 9"/></svg>`,
+  oreja:`<svg viewBox="0 0 120 90"><path d="M60 76C30 76 12 60 12 42 12 24 30 14 46 22c6 3 10 9 14 16 4-7 8-13 14-16 16-8 34 2 34 20 0 18-18 34-48 34z" fill="#D9934B"/><path d="M28 40c6-8 16-8 22 0M70 40c6-8 16-8 22 0M34 52c8-6 18-6 26 2M60 54c8-8 18-8 26-2" stroke="#F6D29A" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
+  bolillo:`<svg viewBox="0 0 120 90"><path d="M10 50c6-20 30-28 50-28s44 8 50 28c-6 14-30 20-50 20S16 64 10 50z" fill="#E2B272"/><path d="M38 36c10 6 34 6 44 0" stroke="#C88B45" stroke-width="5" fill="none" stroke-linecap="round"/></svg>`,
+  dona:`<svg viewBox="0 0 120 90"><ellipse cx="60" cy="48" rx="44" ry="32" fill="#E9B67A"/><path d="M20 44c4-18 22-26 40-26s36 8 40 26c-6 10-22 16-40 16s-34-6-40-16z" fill="#7B4A33"/><ellipse cx="60" cy="44" rx="13" ry="8" fill="var(--rosa-suave)"/><g stroke-width="3" stroke-linecap="round"><path d="M34 38l5 3" stroke="#FFD43B"/><path d="M80 34l4-4" stroke="#69DB7C"/><path d="M84 50l5 2" stroke="#F7A8C4"/><path d="M40 54l-3 4" stroke="#74C0FC"/></g></svg>`
+};
+const PRODUCTOS = [
+  {id:"P01",nombre:"Concha",precio:14,desc:"La de siempre: esponjosa con costra de vainilla rosa.",arte:"concha"},
+  {id:"P02",nombre:"Cocol",precio:12,desc:"Con piloncillo, anís y ajonjolí tostado.",arte:"cocol"},
+  {id:"P03",nombre:"Anillo",precio:13,desc:"Suave, con azúcar glass por encima.",arte:"anillo"},
+  {id:"P04",nombre:"Oreja",precio:15,desc:"Hojaldre crujiente y caramelizado.",arte:"oreja"},
+  {id:"P05",nombre:"Bolillo",precio:4,desc:"Para la torta o el café de la noche.",arte:"bolillo"},
+  {id:"P06",nombre:"Dona de chocolate",precio:16,desc:"Glaseada y con chispas de colores.",arte:"dona"}
+];
+const DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const COMISION = 0.0349, IVA = 0.16;
+
+/* ---------- Guardado (con respaldo en memoria) ---------- */
+const CLAVE = "conchaRosaDemo_v1";
+let memoria = null;
+function cargar(){
+  try{ const t = localStorage.getItem(CLAVE); if(t) return JSON.parse(t); }catch(e){}
+  return memoria;
+}
+function guardar(){
+  memoria = estado;
+  try{ localStorage.setItem(CLAVE, JSON.stringify(estado)); }catch(e){}
+}
+
+/* ---------- Fechas ---------- */
+const pad = n => String(n).padStart(2,"0");
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const deIso = s => { const [a,m,d] = s.split("-").map(Number); return new Date(a,m-1,d); };
+const corta = d => `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${String(d.getFullYear()).slice(2)}`;
+function etiqueta(s){
+  const d = deIso(s), hoy = iso(new Date());
+  const man = new Date(); man.setDate(man.getDate()+1);
+  const base = `${DIAS[d.getDay()]} ${corta(d)}`;
+  if(s===hoy) return {titulo:"Hoy", sub:base};
+  if(s===iso(man)) return {titulo:"Mañana", sub:base};
+  return {titulo:DIAS[d.getDay()].replace(/^./,c=>c.toUpperCase()), sub:corta(d)};
+}
+function proximos(n){
+  const out=[], d=new Date(); d.setHours(0,0,0,0);
+  for(let i=0;i<n;i++){ const x=new Date(d); x.setDate(d.getDate()+i); out.push(iso(x)); }
+  return out;
+}
+
+/* ---------- Estado inicial ---------- */
+function estadoInicial(){
+  const cal={}, inv={};
+  proximos(21).forEach(f=>{
+    const dia = deIso(f).getDay();
+    cal[f] = {abre: dia!==1, apertura:"17:00", cierre:"21:00"};
+    inv[f] = {}; PRODUCTOS.forEach(p=> inv[f][p.id] = p.id==="P05" ? 60 : 30);
+  });
+  return {calendario:cal, inventario:inv, pedidos:[], siguienteFolio:1, sinLeer:0};
+}
+let estado = cargar() || estadoInicial();
+// asegurar días nuevos si pasó el tiempo
+proximos(21).forEach(f=>{
+  if(!estado.calendario[f]) estado.calendario[f] = {abre: deIso(f).getDay()!==1, apertura:"17:00", cierre:"21:00"};
+  if(!estado.inventario[f]){ estado.inventario[f]={}; PRODUCTOS.forEach(p=> estado.inventario[f][p.id] = p.id==="P05"?60:30); }
+});
+guardar();
+
+/* ---------- Cálculos ---------- */
+function vendidas(fecha, pid){
+  return estado.pedidos.filter(o=>o.fecha===fecha && o.estado!=="CANCELADO")
+    .reduce((s,o)=> s + o.items.filter(i=>i.pid===pid).reduce((a,i)=>a+i.cantidad,0), 0);
+}
+function disponibles(fecha, pid){
+  const plan = (estado.inventario[fecha]||{})[pid] || 0;
+  return Math.max(0, plan - vendidas(fecha,pid));
+}
+function yaCerro(fecha){
+  if(fecha!==iso(new Date())) return false;
+  const [h,m] = estado.calendario[fecha].cierre.split(":").map(Number);
+  const ahora = new Date();
+  return ahora.getHours()*60+ahora.getMinutes() >= h*60+m;
+}
+function fechasVenta(){
+  return proximos(14).filter(f=> estado.calendario[f] && estado.calendario[f].abre && !yaCerro(f));
+}
+const dinero = n => "$" + n.toLocaleString("es-MX",{minimumFractionDigits:0,maximumFractionDigits:2});
+
+/* ---------- Tienda ---------- */
+let fechaSel = null;
+let carrito = {}; // pid -> cantidad
+
+function pintarChips(){
+  const fechas = fechasVenta();
+  if(!fechas.includes(fechaSel)) { fechaSel = fechas[0] || null; carrito = {}; }
+  const cont = document.getElementById("chips");
+  cont.innerHTML = fechas.map(f=>{
+    const e = etiqueta(f);
+    return `<button class="chip" data-fecha="${f}" aria-pressed="${f===fechaSel}">${e.titulo}<small>${e.sub}</small></button>`;
+  }).join("") || `<p class="vacio">No hay días abiertos en las próximas dos semanas.</p>`;
+  cont.querySelectorAll(".chip").forEach(b=> b.onclick = ()=>{ fechaSel=b.dataset.fecha; carrito={}; pintarTienda(); });
+  const av = document.getElementById("avisoHorario");
+  if(fechaSel){
+    const c = estado.calendario[fechaSel];
+    av.textContent = `Recoges tu pan el ${DIAS[deIso(fechaSel).getDay()]} ${corta(deIso(fechaSel))} de ${c.apertura} a ${c.cierre} h. Solo mostramos los días que abrimos.`;
+  } else av.textContent = "";
+}
+function pintarCatalogo(){
+  document.getElementById("catalogo").innerHTML = PRODUCTOS.map(p=>{
+    const disp = fechaSel ? disponibles(fechaSel,p.id) : 0;
+    const enCarrito = carrito[p.id]||0;
+    const quedan = disp - enCarrito;
+    return `<article class="pan">
+      <div class="pan-arte" aria-hidden="true">${SVG[p.arte]}</div>
+      <h3>${p.nombre}</h3><p>${p.desc}</p>
+      <div class="pan-pie"><span class="precio">${dinero(p.precio)}</span>
+      <span class="quedan ${quedan<=5?'pocas':''}">${disp===0?'Agotado':'Quedan '+quedan}</span></div>
+      <div class="contador">
+        <button aria-label="Quitar una ${p.nombre}" data-menos="${p.id}" ${enCarrito===0?'disabled':''}>−</button>
+        <span aria-live="polite">${enCarrito}</span>
+        <button aria-label="Agregar una ${p.nombre}" data-mas="${p.id}" ${quedan<=0?'disabled':''}>+</button>
+      </div></article>`;
+  }).join("");
+  document.querySelectorAll("[data-mas]").forEach(b=> b.onclick=()=>{ const id=b.dataset.mas; if((carrito[id]||0) < disponibles(fechaSel,id)){ carrito[id]=(carrito[id]||0)+1; pintarTienda(); }});
+  document.querySelectorAll("[data-menos]").forEach(b=> b.onclick=()=>{ const id=b.dataset.menos; carrito[id]=Math.max(0,(carrito[id]||0)-1); if(!carrito[id]) delete carrito[id]; pintarTienda(); });
+}
+function totalCarrito(){ return Object.entries(carrito).reduce((s,[id,c])=> s + c*PRODUCTOS.find(p=>p.id===id).precio, 0); }
+function pintarCarrito(){
+  const ul = document.getElementById("listaCarrito");
+  const items = Object.entries(carrito);
+  document.getElementById("fechaPedido").textContent = fechaSel ? `Para: ${etiqueta(fechaSel).titulo}, ${DIAS[deIso(fechaSel).getDay()]} ${corta(deIso(fechaSel))}` : "Elige una fecha";
+  ul.innerHTML = items.length ? items.map(([id,c])=>{ const p=PRODUCTOS.find(x=>x.id===id); return `<li><span>${c} × ${p.nombre}</span><b>${dinero(c*p.precio)}</b></li>`; }).join("") : `<li class="vacio">Agrega piezas con el botón +</li>`;
+  document.getElementById("total").textContent = dinero(totalCarrito());
+  document.getElementById("btnPagar").disabled = !items.length;
+}
+function pintarTienda(){ pintarChips(); pintarCatalogo(); pintarCarrito(); }
+
+document.getElementById("btnPagar").onclick = ()=>{
+  const err = document.getElementById("errorCarrito");
+  const nombre = document.getElementById("nombre").value.trim();
+  const tel = document.getElementById("telefono").value.trim();
+  if(!nombre || tel.replace(/\D/g,"").length<10){ err.textContent="Escribe tu nombre y un teléfono de 10 dígitos para avisarte de tu pedido."; err.classList.remove("oculto"); return; }
+  err.classList.add("oculto");
+  document.getElementById("totalPago").textContent = dinero(totalCarrito());
+  ir("pago");
+};
+document.getElementById("btnCancelarPago").onclick = ()=> ir("tienda");
+
+document.getElementById("btnConfirmarPago").onclick = ()=>{
+  // Revisión final de existencias (en la versión real la hace el servidor)
+  for(const [id,c] of Object.entries(carrito)){
+    if(c > disponibles(fechaSel,id)){ alert("Alguien acaba de comprar esas piezas. Revisa tu pedido."); ir("tienda"); return; }
+  }
+  const folio = "PAN-" + String(estado.siguienteFolio++).padStart(4,"0");
+  const metodo = document.querySelector('input[name="metodo"]:checked').value;
+  const pedido = {
+    folio, creado:new Date().toISOString(), fecha:fechaSel, metodo,
+    cliente:document.getElementById("nombre").value.trim(),
+    telefono:document.getElementById("telefono").value.trim(),
+    items:Object.entries(carrito).map(([pid,cantidad])=>({pid,cantidad,precio:PRODUCTOS.find(p=>p.id===pid).precio})),
+    total:totalCarrito(), estado:"PAGADO", idPago:"MP-" + Math.floor(1e8+Math.random()*9e8)
+  };
+  estado.pedidos.push(pedido); estado.sinLeer++; guardar();
+  pintarTicket(pedido);
+  carrito = {};
+  ir("ok");
+  notificar(`🔔 Nuevo pedido ${folio} pagado: ${dinero(pedido.total)} para el ${DIAS[deIso(pedido.fecha).getDay()]} ${corta(deIso(pedido.fecha))}.`);
+  pintarInsignia();
+};
+function pintarTicket(o){
+  const e = etiqueta(o.fecha);
+  document.getElementById("ticket").innerHTML = `
+    <h2>¡Pago aprobado!</h2>
+    <p style="color:var(--tenue)">Tu folio es</p>
+    <div class="folio">${o.folio}</div>
+    <p>Recoge el <b>${DIAS[deIso(o.fecha).getDay()]} ${corta(deIso(o.fecha))}</b> (${e.titulo.toLowerCase()}) de ${estado.calendario[o.fecha].apertura} a ${estado.calendario[o.fecha].cierre} h.</p>
+    <table>${o.items.map(i=>{const p=PRODUCTOS.find(x=>x.id===i.pid);return `<tr><td>${i.cantidad} × ${p.nombre}</td><td style="text-align:right">${dinero(i.cantidad*i.precio)}</td></tr>`}).join("")}
+    <tr><td><b>Total pagado</b></td><td style="text-align:right"><b>${dinero(o.total)}</b></td></tr></table>
+    <p style="color:var(--tenue);font-size:.9rem">Pagado con ${o.metodo.toLowerCase()} · Referencia ${o.idPago}</p>
+    <button class="btn" data-ir="tienda">Hacer otro pedido</button>`;
+  document.querySelector("#ticket [data-ir]").onclick = ()=>{ ir("tienda"); };
+}
+
+/* ---------- Notificación ---------- */
+let tToast;
+function notificar(txt){
+  const t = document.getElementById("toast");
+  t.textContent = txt; t.classList.add("ver");
+  clearTimeout(tToast); tToast = setTimeout(()=>t.classList.remove("ver"), 5500);
+}
+function pintarInsignia(){
+  const i = document.getElementById("insignia");
+  i.textContent = estado.sinLeer; i.classList.toggle("oculto", !estado.sinLeer);
+}
+
+/* ---------- Navegación ---------- */
+let sesion = false;
+function ir(v){
+  ["tienda","pago","ok","cartel","login","panel"].forEach(x=> document.getElementById("vista-"+x).classList.toggle("oculto", x!==v));
+  if(v==="tienda") pintarTienda();
+  if(v==="panel"){ estado.sinLeer=0; guardar(); pintarInsignia(); pintarPanel(); }
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("[data-ir]").forEach(b=> b.onclick=()=> ir(b.dataset.ir));
+document.getElementById("btnPanel").onclick = ()=> ir(sesion ? "panel" : "login");
+document.getElementById("btnEntrar").onclick = ()=>{
+  const ok = document.getElementById("usuario").value.trim()==="admin" && document.getElementById("clave").value==="1234";
+  document.getElementById("errorLogin").classList.toggle("oculto", ok);
+  if(ok){ sesion=true; ir("panel"); }
+};
+document.getElementById("clave").addEventListener("keydown", e=>{ if(e.key==="Enter") document.getElementById("btnEntrar").click(); });
+document.getElementById("btnSalir").onclick = ()=>{ sesion=false; ir("tienda"); };
+
+/* ---------- Panel ---------- */
+let pestaña = "resumen";
+document.querySelectorAll(".pestaña").forEach(b=> b.onclick=()=>{
+  pestaña=b.dataset.pest;
+  document.querySelectorAll(".pestaña").forEach(x=> x.setAttribute("aria-selected", x===b));
+  pintarPanel();
+});
+function etiquetaLarga(f){ const e=etiqueta(f); return `${e.titulo==="Hoy"||e.titulo==="Mañana"?e.titulo+", ":""}${DIAS[deIso(f).getDay()]} ${corta(deIso(f))}`; }
+function comision(total){ return total*COMISION*(1+IVA); }
+
+function pintarPanel(){
+  const c = document.getElementById("contenidoPanel");
+  const fechas = proximos(14);
+  const hoy = iso(new Date());
+  const man = fechas[1];
+
+  if(pestaña==="resumen"){
+    const pagados = estado.pedidos.filter(o=>o.estado!=="CANCELADO");
+    const deHoy = pagados.filter(o=>o.fecha===hoy), deMan = pagados.filter(o=>o.fecha===man);
+    const bruto = pagados.reduce((s,o)=>s+o.total,0);
+    const piezas = l => l.reduce((s,o)=>s+o.items.reduce((a,i)=>a+i.cantidad,0),0);
+    c.innerHTML = `
+      <div class="resumen">
+        <div class="cifra">Pedidos para hoy<b>${deHoy.length}</b>${piezas(deHoy)} piezas</div>
+        <div class="cifra">Pedidos para mañana<b>${deMan.length}</b>${piezas(deMan)} piezas</div>
+        <div class="cifra">Ventas totales<b>${dinero(bruto)}</b>de ${pagados.length} pedidos</div>
+        <div class="cifra">Te llega después de comisión<b>${dinero(bruto-comision(bruto))}</b>3.49% + IVA de Mercado Pago</div>
+      </div>
+      <div class="tarjeta"><h3>Cómo usar el panel</h3>
+      <p>En <b>Días que abro</b> marcas qué días vendes y tu horario. En <b>Piezas por día</b> pones cuántas vas a hornear. La tienda solo deja comprar lo que tienes, y en <b>Qué hornear</b> ves cuánto ya está pagado para cada día.</p>
+      <button class="btn btn-sec btn-chico" id="btnReiniciar">Borrar datos de prueba</button></div>`;
+    document.getElementById("btnReiniciar").onclick = ()=>{ if(confirm("¿Borrar todos los pedidos y ajustes de prueba?")){ estado=estadoInicial(); guardar(); pintarPanel(); pintarInsignia(); } };
+  }
+
+  if(pestaña==="calendario"){
+    c.innerHTML = `<div class="tarjeta"><h3>Días que abro</h3><p style="color:var(--tenue)">Los días que marques como cerrados no aparecen en la tienda.</p>
+      <div class="tabla-scroll"><table class="datos"><thead><tr><th>Día</th><th>¿Abro?</th><th>Abre</th><th>Cierra</th></tr></thead><tbody>
+      ${fechas.map(f=>{const d=estado.calendario[f];return `<tr><td>${etiquetaLarga(f)}</td>
+        <td><label><input type="checkbox" data-abre="${f}" ${d.abre?'checked':''}> ${d.abre?'Abro':'No abro'}</label></td>
+        <td><input type="time" data-ap="${f}" value="${d.apertura}" ${d.abre?'':'disabled'}></td>
+        <td><input type="time" data-ci="${f}" value="${d.cierre}" ${d.abre?'':'disabled'}></td></tr>`}).join("")}
+      </tbody></table></div></div>`;
+    c.querySelectorAll("[data-abre]").forEach(i=> i.onchange=()=>{ estado.calendario[i.dataset.abre].abre=i.checked; guardar(); pintarPanel(); });
+    c.querySelectorAll("[data-ap]").forEach(i=> i.onchange=()=>{ estado.calendario[i.dataset.ap].apertura=i.value; guardar(); });
+    c.querySelectorAll("[data-ci]").forEach(i=> i.onchange=()=>{ estado.calendario[i.dataset.ci].cierre=i.value; guardar(); });
+  }
+
+  if(pestaña==="inventario"){
+    const abiertos = fechas.filter(f=>estado.calendario[f].abre);
+    if(!panelFecha || !abiertos.includes(panelFecha)) panelFecha = abiertos[0];
+    c.innerHTML = `<div class="tarjeta"><h3>Piezas por día</h3>
+      <label class="campo" style="max-width:300px"><span>Día</span><select id="selFecha">${abiertos.map(f=>`<option value="${f}" ${f===panelFecha?'selected':''}>${etiquetaLarga(f)}</option>`).join("")}</select></label>
+      <div class="tabla-scroll"><table class="datos"><thead><tr><th>Pan</th><th>Voy a hornear</th><th>Vendidas</th><th>Disponibles</th></tr></thead><tbody>
+      ${panelFecha?PRODUCTOS.map(p=>`<tr><td>${p.nombre}</td><td><input type="number" min="0" data-inv="${p.id}" value="${estado.inventario[panelFecha][p.id]}"></td><td>${vendidas(panelFecha,p.id)}</td><td><b>${disponibles(panelFecha,p.id)}</b></td></tr>`).join(""):""}
+      </tbody></table></div></div>`;
+    const s = document.getElementById("selFecha"); if(s) s.onchange=()=>{ panelFecha=s.value; pintarPanel(); };
+    c.querySelectorAll("[data-inv]").forEach(i=> i.onchange=()=>{
+      const v = Math.max(vendidas(panelFecha,i.dataset.inv), parseInt(i.value)||0);
+      estado.inventario[panelFecha][i.dataset.inv]=v; guardar(); pintarPanel();
+    });
+  }
+
+  if(pestaña==="produccion"){
+    const conPedidos = fechas.filter(f=> estado.pedidos.some(o=>o.fecha===f && o.estado!=="CANCELADO"));
+    c.innerHTML = conPedidos.length ? conPedidos.map(f=>`<div class="tarjeta"><h3>${etiquetaLarga(f)}</h3>
+      <div class="tabla-scroll"><table class="datos"><thead><tr><th>Pan</th><th>Ya pagadas</th><th>Planeadas</th><th>Libres para venta</th></tr></thead><tbody>
+      ${PRODUCTOS.map(p=>({p,v:vendidas(f,p.id)})).filter(x=>x.v>0).map(x=>`<tr><td>${x.p.nombre}</td><td><b>${x.v}</b></td><td>${estado.inventario[f][x.p.id]}</td><td>${disponibles(f,x.p.id)}</td></tr>`).join("")}
+      </tbody></table></div></div>`).join("")
+      : `<div class="tarjeta"><p>Todavía no hay pedidos pagados. Haz una compra de prueba en la tienda y aquí verás cuánto hornear cada día.</p></div>`;
+  }
+
+  if(pestaña==="pedidos"){
+    const lista = [...estado.pedidos].reverse();
+    c.innerHTML = `<div class="tarjeta"><h3>Pedidos</h3>${lista.length?`<div class="tabla-scroll"><table class="datos"><thead><tr><th>Folio</th><th>Para</th><th>Cliente</th><th>Piezas</th><th>Total</th><th>Comisión</th><th>Te llega</th><th>Estado</th></tr></thead><tbody>
+      ${lista.map(o=>`<tr><td><b>${o.folio}</b></td><td>${etiquetaLarga(o.fecha)}</td><td>${o.cliente}<br><small>${o.telefono}</small></td>
+        <td>${o.items.map(i=>i.cantidad+" "+PRODUCTOS.find(p=>p.id===i.pid).nombre).join(", ")}</td>
+        <td>${dinero(o.total)}</td><td>${dinero(comision(o.total))}</td><td><b>${dinero(o.total-comision(o.total))}</b></td>
+        <td>${o.estado==="ENTREGADO"?'<span class="estado entregado">Entregado</span>':`<span class="estado">Pagado</span> <button class="btn btn-chico" data-entregar="${o.folio}">Marcar entregado</button>`}</td></tr>`).join("")}
+      </tbody></table></div>`:`<p>Aún no hay pedidos. Haz una compra de prueba en la tienda.</p>`}</div>`;
+    c.querySelectorAll("[data-entregar]").forEach(b=> b.onclick=()=>{ estado.pedidos.find(o=>o.folio===b.dataset.entregar).estado="ENTREGADO"; guardar(); pintarPanel(); });
+  }
+}
+let panelFecha = null;
+
+/* ---------- Adornos ---------- */
+(function papelPicado(){
+  const colores=["#D6336C","#F59F00","#1F8A7A","#7048E8","#F783AC"];
+  let g="";
+  for(let i=0;i<12;i++){
+    const x=i*50, col=colores[i%colores.length];
+    g+=`<path d="M${x} 0h50v34l-25 12-25-12z" fill="${col}"/>
+        <circle cx="${x+25}" cy="16" r="6" fill="var(--fondo)"/>
+        <path d="M${x+10} 8l4 4M${x+40} 8l-4 4M${x+12} 28l5-3M${x+38} 28l-5-3" stroke="var(--fondo)" stroke-width="3"/>`;
+  }
+  document.getElementById("banderas").innerHTML = g + `<path d="M0 1h600" stroke="#5B3A29" stroke-width="2"/>`;
+})();
+document.getElementById("arteGrande").innerHTML = SVG.concha;
+(function qrDecorativo(){
+  const n=25, t=8; let s=`<svg width="${n*t}" height="${n*t}" viewBox="0 0 ${n*t} ${n*t}"><rect width="100%" height="100%" fill="#fff"/>`;
+  let semilla=7; const azar=()=>{ semilla=(semilla*9301+49297)%233280; return semilla/233280; };
+  const ojo=(x,y)=>{ s+=`<rect x="${x*t}" y="${y*t}" width="${7*t}" height="${7*t}" fill="#3D2A22"/><rect x="${(x+1)*t}" y="${(y+1)*t}" width="${5*t}" height="${5*t}" fill="#fff"/><rect x="${(x+2)*t}" y="${(y+2)*t}" width="${3*t}" height="${3*t}" fill="#3D2A22"/>`; };
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++){
+    const enOjo=(x<8&&y<8)||(x>n-9&&y<8)||(x<8&&y>n-9);
+    if(!enOjo && azar()>.52) s+=`<rect x="${x*t}" y="${y*t}" width="${t}" height="${t}" fill="#3D2A22"/>`;
+  }
+  ojo(0,0); ojo(n-7,0); ojo(0,n-7);
+  s+=`<circle cx="${n*t/2}" cy="${n*t/2}" r="18" fill="#fff"/><g transform="translate(${n*t/2-15},${n*t/2-12}) scale(.25)">${SVG.concha.replace(/<\/?svg[^>]*>/g,"")}</g></svg>`;
+  document.getElementById("qr").innerHTML = s;
+})();
+
+pintarInsignia();
+pintarTienda();
+</script>
+</body>
+</html>
